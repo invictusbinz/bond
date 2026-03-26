@@ -133,9 +133,17 @@ const footerNote: React.CSSProperties = {
   borderTop: `1px solid ${C.rule}`,
 }
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+type Props = {
+  // Called when Person B confirms they are ready to proceed to intake.
+  // If not provided, the ready_confirmed screen is a dead-end (original behaviour).
+  onReady?: () => void
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AvailabilityCheckIn() {
+export default function AvailabilityCheckIn({ onReady }: Props = {}) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [selectedOption, setSelectedOption] = useState<AvailabilityOption | null>(null)
   const [hoveredOption, setHoveredOption] = useState<string | null>(null)
@@ -298,7 +306,7 @@ export default function AvailabilityCheckIn() {
     const isStressed = selectedOption === 'stressed'
     return (
       <div style={pageWrap}>
-        <style>{FONTS}</style>
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
             style={{
@@ -328,11 +336,34 @@ export default function AvailabilityCheckIn() {
           >
             {isStressed ? 'Good to know.' : 'Good to have you here.'}
           </h2>
-          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
+          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75, marginBottom: onReady ? '32px' : '0' }}>
             {isStressed
               ? "It's okay to show up carrying some weight. We'll go at a pace that works. Take your time."
               : "We'll take it at a reasonable pace. The session is ready whenever you are."}
           </p>
+
+          {/* Only show continue button if the parent has provided an onReady handler */}
+          {onReady && (
+            <button
+              onClick={onReady}
+              style={{
+                padding: '13px 32px',
+                borderRadius: '8px',
+                backgroundColor: C.accent,
+                color: C.white,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
+            >
+              Continue
+            </button>
+          )}
         </div>
       </div>
     )
