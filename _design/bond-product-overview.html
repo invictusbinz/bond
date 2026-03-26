@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bond / Product Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --ink-soft: #4a4540;
+    --ink-muted: #8a8480;
+    --paper: #faf8f4;
+    --paper-warm: #f2ede4;
+    --accent: #c4622d;
+    --accent-soft: #f0d9cc;
+    --rule: #e0d8cc;
+    --green: #3d6b4f;
+    --green-soft: #d4e8dc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 80px 48px 120px;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: 40px;
+    margin-bottom: 56px;
+  }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+
+  .title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .tagline {
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--ink-soft);
+    max-width: 520px;
+    line-height: 1.6;
+    margin-top: 20px;
+  }
+
+  .meta {
+    display: flex;
+    gap: 32px;
+    margin-top: 32px;
+  }
+
+  .meta-item {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .meta-item span {
+    display: block;
+    color: var(--ink);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* Origin note */
+  .origin {
+    background: var(--paper-warm);
+    border-left: 3px solid var(--accent);
+    padding: 28px 32px;
+    margin-bottom: 64px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .origin p {
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.75;
+  }
+
+  .origin p + p {
+    margin-top: 12px;
+  }
+
+  /* Sections */
+  .section {
+    margin-bottom: 64px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+
+  .section-body {
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.8;
+  }
+
+  .section-body p + p {
+    margin-top: 14px;
+  }
+
+  /* Principle callout */
+  .principle {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    color: var(--ink);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 24px 0;
+    margin: 32px 0;
+    line-height: 1.5;
+  }
+
+  /* Architecture */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .arch-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+
+  .arch-card:hover {
+    border-color: var(--accent);
+  }
+
+  .arch-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .arch-card.accent-bg {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .arch-card.green-bg {
+    background: var(--green-soft);
+    border-color: var(--green);
+  }
+
+  .arch-icon {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .arch-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  .arch-card.green-bg .arch-name {
+    color: var(--green);
+  }
+
+  .arch-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+
+  .arch-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+
+  /* Feature list */
+  .feature-list {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .feature-item {
+    display: flex;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: flex-start;
+  }
+
+  .feature-item:first-child {
+    border-top: 1px solid var(--rule);
+  }
+
+  .feature-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    min-width: 28px;
+    padding-top: 2px;
+  }
+
+  .feature-content {}
+
+  .feature-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .feature-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+
+  /* Pillars */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .pillar {
+    padding: 20px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: white;
+  }
+
+  .pillar-title {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .pillar-desc {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.65;
+  }
+
+  /* North star */
+  .north-star {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 48px;
+    border-radius: 8px;
+    margin-top: 24px;
+  }
+
+  .north-star .section-label {
+    color: var(--accent-soft);
+  }
+
+  .north-star .section-label::after {
+    background: rgba(255,255,255,0.15);
+  }
+
+  .north-star-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-style: italic;
+    color: var(--paper);
+    line-height: 1.45;
+    margin-bottom: 24px;
+  }
+
+  .north-star-sub {
+    font-size: 14px;
+    color: rgba(250,248,244,0.6);
+    line-height: 1.75;
+    max-width: 560px;
+  }
+
+  /* Flow */
+  .flow {
+    margin-top: 24px;
+  }
+
+  .flow-step {
+    display: flex;
+    gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  .flow-step:last-child {
+    border-bottom: none;
+  }
+
+  .flow-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .flow-content {}
+
+  .flow-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .flow-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+
+  /* Tag */
+  .tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-right: 6px;
+    margin-top: 6px;
+  }
+
+  .tag-warm { background: var(--accent-soft); color: var(--accent); }
+  .tag-green { background: var(--green-soft); color: var(--green); }
+  .tag-neutral { background: var(--paper-warm); color: var(--ink-muted); }
+
+  /* Footer */
+  .footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+  }
+
+  .footer-brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .page { padding: 48px 24px 80px; }
+    .title { font-size: 44px; }
+    .arch-grid { grid-template-columns: 1fr; }
+    .pillars { grid-template-columns: 1fr; }
+    .meta { flex-wrap: wrap; gap: 20px; }
+    .north-star { padding: 32px 24px; }
+    .north-star-text { font-size: 22px; }
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page > * {
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .page > *:nth-child(1) { animation-delay: 0.05s; }
+  .page > *:nth-child(2) { animation-delay: 0.12s; }
+  .page > *:nth-child(3) { animation-delay: 0.18s; }
+  .page > *:nth-child(4) { animation-delay: 0.24s; }
+  .page > *:nth-child(5) { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">Product Concept / Working Document</div>
+    <div class="title">A <em>relational</em><br>operating system.</div>
+    <div class="tagline">An AI-native space to understand yourself, navigate conflict, and grow across every relationship that matters to you.</div>
+    <div class="meta">
+      <div class="meta-item">Status <span>Early Concept</span></div>
+      <div class="meta-item">Audience <span>Yash (hey 👋)</span></div>
+      <div class="meta-item">Stage <span>Product Discovery</span></div>
+      <div class="meta-item">Reading Time <span>6 to 8 mins</span></div>
+    </div>
+  </div>
+
+  <!-- Origin -->
+  <div class="origin">
+    <p>This idea came from something real. We've been together 10 years, we both want to grow, individually and together, and we fight. Sometimes well, sometimes not. We already use async convos as a deliberate practice for this, and it genuinely helps us communicate and feel heard. But the platform we use for it is just a group chat. No memory, no structure, no intelligence. It can't help us articulate what we actually mean, or make sure the other person has truly understood before they respond.</p>
+    <p>This is the intelligent version of that. Built for people who already want to do the work and just need the right scaffold to do it well.</p>
+  </div>
+
+  <!-- The Core Insight -->
+  <div class="section">
+    <div class="section-label">The Insight</div>
+    <div class="section-title">The enemy isn't conflict.<br>It's the conditions around it.</div>
+    <div class="section-body">
+      <p>Most people in committed relationships aren't bad communicators. They're rational, caring people who get hijacked by emotion, timing, and format in the middle of a hard moment. The fight they have is rarely the fight they intended to have.</p>
+      <p>Current tools don't help. Therapy is expensive, periodic, and one-sided. Couples counseling needs both people in a room at the same time. Journaling has no intelligence. AI companions have no relationship context.</p>
+      <p>The gap is enormous. And it's hiding in plain sight.</p>
+    </div>
+    <div class="principle">"Being heard isn't the path to resolution. It's the destination, most of the time."</div>
+    <div class="section-body">
+      <p>The product's primary job is <strong>witnessed understanding</strong>: not verdict, not judgment, not scoring. Resolution is a secondary mode that only becomes possible after both people feel genuinely seen.</p>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section">
+    <div class="section-label">Product Architecture</div>
+    <div class="section-title">Two layers.<br>One coherent whole.</div>
+    <div class="section-body">
+      <p>The product has a personal layer (just you) and a relational layer (you + the people in your life). Both are connected. The AI learns across all of them simultaneously.</p>
+    </div>
+
+    <div class="arch-grid" style="margin-top: 32px;">
+
+      <div class="arch-card accent-bg full-width">
+        <div class="arch-icon">◎</div>
+        <div class="arch-name">Personal Layer</div>
+        <div class="arch-title">The Self</div>
+        <div class="arch-desc">Your private home base. The AI here knows you across all your relationships: your communication patterns, recurring blindspots, growth arc over time. You can process thoughts, set intentions (no pressure, they emerge naturally), and track how you're evolving as a person. The AI coaches you as an individual, not just within each relationship.</div>
+      </div>
+
+      <div class="arch-card full-width">
+        <div class="arch-icon">⌀</div>
+        <div class="arch-name">Relational Layer</div>
+        <div class="arch-title">Bonds</div>
+        <div class="arch-desc">Each important relationship in your life gets its own Bond: your partner, your sister, a close friend. Each Bond has its own memory, its own history, and its own shared and private spaces. The other person may or may not participate. The Bond is useful either way.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Inside a Bond -->
+  <div class="section">
+    <div class="section-label">Inside a Bond</div>
+    <div class="section-title">Everything a relationship<br>needs to grow.</div>
+
+    <div class="feature-list">
+
+      <div class="feature-item">
+        <div class="feature-num">01</div>
+        <div class="feature-content">
+          <div class="feature-title">Sessions: structured conflict work</div>
+          <div class="feature-desc">When there's something to work through together. Both people engage with the shared AI agent independently, on their own time and device. The AI holds everything: it synthesizes both sides neutrally, asks private follow-up questions to each person, and guides the conversation toward mutual understanding. No raw inputs are ever shown to the other party. Only the AI's synthesis is shared. This is non-negotiable. People self-censor when they know their partner will read their raw words verbatim.</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-warm">Async-first</span>
+            <span class="tag tag-warm">Both parties</span>
+            <span class="tag tag-warm">AI synthesis only</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-num">02</div>
+        <div class="feature-content">
+          <div class="feature-title">Dispatches: solo processing</div>
+          <div class="feature-desc">You don't always need the other person involved. A Dispatch is your private space within a Bond to think out loud, process a fight alone, make a note, or just clear your head. The AI already has full Bond context. It knows your history with this person, so it can respond intelligently even without them in the room. Some Dispatches stay private. Others can be moved to the shared Archive when you're ready.</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-neutral">Solo</span>
+            <span class="tag tag-neutral">Private by default</span>
+            <span class="tag tag-neutral">Full Bond context</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-num">03</div>
+        <div class="feature-content">
+          <div class="feature-title">The Foundation: shared agreements & goals</div>
+          <div class="feature-desc">A living document co-created by both people. Communication agreements you've made, principles that guide how you fight, goals you share as a unit. The AI actively references this during Sessions and can gently flag when a principle is being violated without making it punitive. Just a mirror.</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-green">Shared</span>
+            <span class="tag tag-green">Proactive</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-num">04</div>
+        <div class="feature-content">
+          <div class="feature-title">The Archive: memory and wins</div>
+          <div class="feature-desc">Two flavors: a shared Archive (good memories, milestones, wins that belong to both of you, the stuff that reminds you why you're doing this) and a private Archive (notes only you can see, things you want to remember about this relationship but not necessarily share).</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-green">Shared version</span>
+            <span class="tag tag-neutral">Private version</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-num">05</div>
+        <div class="feature-content">
+          <div class="feature-title">The Debrief: individual coaching post-session</div>
+          <div class="feature-desc">After every Session, each person privately gets a coaching reflection. What you did well. Where your approach created distance. Patterns the AI is noticing over time. Specific, concrete things to practice. The goal of this feature is to eventually make the acute tool (Sessions) needed less often, not more. The product succeeds when you get better at this without it.</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-warm">Private</span>
+            <span class="tag tag-warm">Growth-oriented</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-num">06</div>
+        <div class="feature-content">
+          <div class="feature-title">The Thread: longitudinal memory</div>
+          <div class="feature-desc">The AI remembers everything across every Session and Dispatch within a Bond. Three months later, when a similar fight surfaces, it recognizes the pattern. It can say "this feels familiar. Here's what happened last time, here's what worked, here's what didn't." The relationship has a memory that neither person has to maintain manually.</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-neutral">Persistent</span>
+            <span class="tag tag-neutral">Auto-built</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Session Flow -->
+  <div class="section">
+    <div class="section-label">How a Session Works</div>
+    <div class="section-title">The core loop.</div>
+    <div class="section-body"><p>A Session has two modes, declared at the start by whoever initiates.</p></div>
+
+    <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="arch-card">
+        <div class="arch-name">Mode 1 / Default</div>
+        <div class="arch-title" style="font-size: 17px;">I need to be heard</div>
+        <div class="arch-desc">The goal is witnessed understanding. No problem-solving. No action items. Success = the other person reflects back what you meant, not just what you said. This is most conflicts, most of the time.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-name">Mode 2 / Optional</div>
+        <div class="arch-title" style="font-size: 17px;">We need to figure something out</div>
+        <div class="arch-desc">Resolution is on the table. Multi-round structured exchange, shared mapping of the disagreement, actionable next steps. Only possible after Mode 1 completes, or when both people are already calm enough to problem-solve.</div>
+      </div>
+    </div>
+
+    <div class="flow" style="margin-top: 32px;">
+
+      <div class="flow-step">
+        <div class="flow-dot">1</div>
+        <div class="flow-content">
+          <div class="flow-title">Emotional availability check-in</div>
+          <div class="flow-desc">Before the other person even reads anything, the AI asks them: "How are you showing up right now?" If they're depleted or defensive, it doesn't block them, but it primes them with what kind of energy this needs. "This is emotion-first. Your partner needs to feel heard, not solved."</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot">2</div>
+        <div class="flow-content">
+          <div class="flow-title">Independent intake, both parties</div>
+          <div class="flow-desc">Each person shares their side privately with the AI, in their own time, on their own device. No character limits. No formatting required. The AI asks gentle follow-up questions to help them articulate what they actually mean, going beyond what they literally said.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot">3</div>
+        <div class="flow-content">
+          <div class="flow-title">AI synthesis, shared and neutral</div>
+          <div class="flow-desc">The AI synthesizes both sides into a shared view. Not a summary of what each person said. A distillation of what each person meant. Both people see this together. Raw inputs stay private permanently.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot">4</div>
+        <div class="flow-content">
+          <div class="flow-title">Rounds of clarification</div>
+          <div class="flow-desc">Multiple rounds of back-and-forth, each person with the AI independently. The AI builds on everything shared so far and presents each party's contributions in plain, simple terms as the picture gets clearer. Direct questions between parties are possible, passed through the AI to preserve emotional temperature.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot">5</div>
+        <div class="flow-content">
+          <div class="flow-title">The checkpoint</div>
+          <div class="flow-desc">"Both of you have acknowledged each other's feelings. Do you want to leave it here, or work toward figuring something out together?" This question, arriving at the right moment, makes the transition to resolution feel like a joint choice. Not something one person imposes on the other.</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot">6</div>
+        <div class="flow-content">
+          <div class="flow-title">The Debrief, individual and private</div>
+          <div class="flow-desc">Each person gets their private coaching reflection after the session closes. The Thread updates automatically. The Foundation is referenced if any shared agreements were relevant or broken.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Design Pillars -->
+  <div class="section">
+    <div class="section-label">Design Principles</div>
+    <div class="section-title">What we refuse to compromise on.</div>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-title">Async-native</div>
+        <div class="pillar-desc">Both people can't always be on the same bandwidth. The tool is designed for emotional availability, not calendar availability.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Opinionated defaults</div>
+        <div class="pillar-desc">The tool has a point of view about healthy communication. It embodies it by default, without preaching it. Minimal settings, maximum intelligence.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Privacy as architecture</div>
+        <div class="pillar-desc">Raw inputs are never shared. The firewall between private and shared spaces is absolute. Trust is the product.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Anti-handicap</div>
+        <div class="pillar-desc">The tool should make itself needed less over time, not more. Growth, not dependency. The coaching layer exists to build skill, not replace it.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Heard before solved</div>
+        <div class="pillar-desc">Understanding always precedes resolution. The tool never skips the first to rush to the second.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">No intimidation</div>
+        <div class="pillar-desc">No goals required to start. No forms to fill. The desire to grow is enough. Everything else, patterns, intentions, goals, emerges through use.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- North Star -->
+  <div class="section">
+    <div class="north-star">
+      <div class="section-label">North Star</div>
+      <div class="north-star-text">"The product succeeds when you need the fight resolution feature less, because you've gotten better at this without it."</div>
+      <div class="north-star-sub">Usage of the acute tool going down while engagement with the coaching layer goes up. That's the health metric, not daily active users on the conflict feature. This is a product that wins by making part of itself redundant.</div>
+    </div>
+  </div>
+
+  <!-- What's Next -->
+  <div class="section">
+    <div class="section-label">Status & Next Steps</div>
+    <div class="section-title">Where this is right now.</div>
+    <div class="section-body">
+      <p>This document represents the product philosophy and full vision, not an MVP spec. The concept is directionally clear. The next step is to define the smallest version of this that is still true to the vision and genuinely useful on day one.</p>
+      <p>Key open questions worth discussing: the onboarding moment (how does a second person get invited into a Bond?), the AI's voice and tone, and where to draw the MVP boundary without betraying the core idea.</p>
+    </div>
+    <div style="margin-top: 20px;">
+      <span class="tag tag-warm">Product discovery: done</span>
+      <span class="tag tag-neutral">MVP scoping: next</span>
+      <span class="tag tag-neutral">Session flow: in progress</span>
+      <span class="tag tag-neutral">Naming: TBD</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-note">Working title, subject to change</div>
+    <div class="footer-brand">Bond.</div>
+  </div>
+
+</div>
+</body>
+</html>
