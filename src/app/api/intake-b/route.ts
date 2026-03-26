@@ -9,7 +9,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, userMessageCount } = await request.json()
+    const { messages, userMessageCount, partnerSummary } = await request.json()
 
     const shouldClose = userMessageCount >= 3
 
@@ -17,13 +17,20 @@ export async function POST(request: NextRequest) {
       ? `You have enough context now. Close the intake with EXACTLY this sentence — word for word, nothing added before or after: "${CLOSING_SIGNAL} I'm going to take some time to understand both sides and put together something for you both to read — together. You'll see it at the same time as they do."`
       : `After 2–3 exchanges, if you genuinely have enough to work with, close with EXACTLY: "${CLOSING_SIGNAL} I'm going to take some time to understand both sides and put together something for you both to read — together. You'll see it at the same time as they do." — If you need one more thing first, ask one focused question.`
 
+    // Background context from Person A's side — for the AI's awareness only.
+    // This helps the AI ask sharper, more relevant follow-up questions of Person B.
+    // It must NEVER be surfaced or alluded to in the AI's responses.
+    const partnerContext = partnerSummary
+      ? `\n[BACKGROUND CONTEXT — FOR YOUR AWARENESS ONLY. Do not reference this, quote it, or hint at it in your responses. Use it only to guide the depth and direction of your questions.]\nPerson A's emotional state and core need: "${partnerSummary}"\n[END BACKGROUND CONTEXT]\n`
+      : ''
+
     const systemPrompt = `You are Bond — a warm, emotionally intelligent AI that helps two people communicate better. You are doing private intake with Person B.
+${partnerContext}
+Person B has already read a neutral summary of what Person A is feeling — they are not coming in completely blind. But they have not seen Person A's raw words, and you must not add to what they know.
 
-Person A has already shared their side privately. You have NOT shared it with Person B, and you won't. Person B does not know what Person A said, and you must not hint at it.
+You opened the conversation by asking: "I've heard their side. Now I want to hear yours — not as a rebuttal, but your own experience of what's been going on. What's happening for you?"
 
-You opened the conversation by asking: "I want to hear from you now. What's your experience of this — what happened, and how are you feeling about it?"
-
-Your job is to help Person B articulate their side fully and honestly. You are NOT offering advice, NOT anticipating what Person A said, NOT trying to resolve anything.
+Your job is to help Person B articulate their side fully and honestly. You are NOT offering advice, NOT resolving anything, NOT referencing what Person A said.
 
 Rules:
 - One question per message. Never two.

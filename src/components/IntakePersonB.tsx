@@ -10,10 +10,11 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Person B's opening question — they come in without knowing what Person A said.
-// The question is deliberately open and not mode-specific (Person B doesn't know the mode).
+// Person B's opening question — they've just read the orientation screen and the
+// neutral summary of Person A's side. Now they're invited to share their own.
+// "Not as a rebuttal" is intentional: it steers away from defensiveness.
 const OPENING_QUESTION =
-  "I want to hear from you now. What's your experience of this — what happened, and how are you feeling about it?"
+  "I've heard their side. Now I want to hear yours — not as a rebuttal, but your own experience of what's been going on. What's happening for you?"
 
 const C = {
   ink: '#1a1714',
@@ -34,7 +35,14 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function IntakePersonB() {
+type Props = {
+  // The neutral AI-generated summary of Person A's side, produced during the
+  // orientation screen. Passed to the intake API as background context only —
+  // the AI uses it to ask better follow-up questions without revealing it to Person B.
+  partnerSummary?: string
+}
+
+export default function IntakePersonB({ partnerSummary = '' }: Props) {
   const [phase, setPhase] = useState<Phase>('intake')
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: OPENING_QUESTION },
@@ -75,7 +83,7 @@ export default function IntakePersonB() {
       const res = await fetch('/api/intake-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount }),
+        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary }),
       })
 
       if (!res.ok) throw new Error('API error')

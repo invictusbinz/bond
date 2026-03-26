@@ -1,0 +1,87 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+// Used when Person A's intake isn't in Supabase yet (early prototype / first load).
+// Honest and non-committal — doesn't fabricate context.
+const FALLBACK_SUMMARY =
+  "They reached out to share something that's been weighing on them about your relationship. I heard their side privately — the fuller picture will come together once I hear from you too."
+
+export async function GET() {
+  try {
+    // Supabase client — server-side, uses public anon key (read-only for this table)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Fetch Person A's most recent completed intake
+    const { data, error } = await supabase
+      .from('intake_responses')
+      .select('messages')
+      .eq('person', 'a')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error || !data?.messages) {
+      console.log('No Person A intake in Supabase — using fallback summary:', error?.message)
+      return NextResponse.json({ summary: FALLBACK_SUMMARY, hasData: false })
+    }
+
+    // Pull only Person A's typed messages (not the AI's questions)
+    // to build the transcript we send to Claude for summarizing
+    const messages = data.messages as Array<{ role: 'ai' | 'user'; text: string }>
+    const userLines = messages
+      .filter((m) => m.role === 'user')
+      .map((m) => `- ${m.text}`)
+      .join('\n')
+
+    if (!userLines.trim()) {
+      return NextResponse.json({ summary: FALLBACK_SUMMARY, hasData: false })
+    }
+
+    const systemPrompt = `You are Bond — a neutral AI that helps two people communicate better.
+
+You have just read what Person A shared in their private intake session. Your task is to write a 2–3 sentence summary of their emotional state and core need. This summary will be shown to Person B before they share their own side — to orient them, not to make them respond to specifics.
+
+Requirements:
+- Capture the feeling and the need — not the events, facts, or who did what
+- Completely neutral: no blame, no loaded language, no accusatory framing
+- Do NOT quote anything Person A said word-for-word
+- Do NOT include situational details that could feel like an accusation to Person B
+- Written in third person, empathetically: "They're feeling...", "What they seem to need..."
+- 2–3 sentences only. Plain prose. No headers. No bullet points. No quotation marks.`
+
+    const userContent = `Here is what Person A shared:\n\n${userLines}\n\nWrite the 2–3 sentence summary now.`
+
+    const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.NEXT_PRIVATE_CLAUDE_API_KEY!,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 200,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }],
+      }),
+    })
+
+    if (!apiResponse.ok) {
+      const errText = await apiResponse.text()
+      console.error('Anthropic error in summarize-person-a:', errText)
+      throw new Error(`Anthropic API error: ${apiResponse.status}`)
+    }
+
+    const result = await apiResponse.json()
+    const summary: string = result.content?.[0]?.text ?? FALLBACK_SUMMARY
+
+    return NextResponse.json({ summary, hasData: true })
+  } catch (error) {
+    console.error('summarize-person-a error:', error)
+    // Always return something — Person B's flow must not be blocked
+    return NextResponse.json({ summary: FALLBACK_SUMMARY, hasData: false })
+  }
+}

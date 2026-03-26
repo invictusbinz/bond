@@ -1,25 +1,40 @@
 'use client'
 
 // Person B's full journey lives here:
-//   1. Availability Check-In — how are they feeling right now?
-//   2. Intake — share their side of the situation (private, AI-guided)
+//
+//   availability  →  Check-in: how are they feeling right now?
+//   orientation   →  Intention-setting + neutral summary of what Person A shared
+//   intake        →  Person B shares their own side (AI-guided, private)
 //
 // Person A's journey is at /intake.
 
 import { useState } from 'react'
 import AvailabilityCheckIn from '@/components/AvailabilityCheckIn'
+import OrientationPersonB from '@/components/OrientationPersonB'
 import IntakePersonB from '@/components/IntakePersonB'
 
-type Flow = 'availability' | 'intake'
+type Flow = 'availability' | 'orientation' | 'intake'
 
 export default function Home() {
   const [flow, setFlow] = useState<Flow>('availability')
+  // The neutral summary of Person A's side, generated during orientation.
+  // Passed to IntakePersonB so the AI can use it as background context.
+  const [partnerSummary, setPartnerSummary] = useState('')
 
   if (flow === 'intake') {
-    return <IntakePersonB />
+    return <IntakePersonB partnerSummary={partnerSummary} />
   }
 
-  // Pass onReady so that when Person B confirms they're ready,
-  // we transition them directly into their intake.
-  return <AvailabilityCheckIn onReady={() => setFlow('intake')} />
+  if (flow === 'orientation') {
+    return (
+      <OrientationPersonB
+        onReady={(summary) => {
+          setPartnerSummary(summary)
+          setFlow('intake')
+        }}
+      />
+    )
+  }
+
+  return <AvailabilityCheckIn onReady={() => setFlow('orientation')} />
 }
