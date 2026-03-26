@@ -40,10 +40,10 @@ export default function AvailabilityCheckIn() {
             {isAvailable ? '✓' : '—'}
           </div>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '32px', fontWeight: 400, color: '#1a1714', marginBottom: '12px', lineHeight: 1.2 }}>
-            {isAvailable ? 'Thanks for letting us know.' : 'No problem.'}
+            {isAvailable ? "Thanks for letting us know." : "No problem."}
           </h1>
           <p style={{ color: '#4a4540', fontSize: '15px', lineHeight: 1.7 }}>
-            {isAvailable ? "We're glad you're here and ready. Your session is waiting." : 'Feel free to check back whenever you're ready.'}
+            {isAvailable ? "We're glad you're here and ready. Your session is waiting." : "Feel free to check back whenever you're ready."}
           </p>
         </div>
       </div>
