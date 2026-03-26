@@ -3,7 +3,22 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-type Phase = 'checking' | 'ready' | 'not_ready'
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type AvailabilityOption = 'ready' | 'stressed' | 'not_now' | 'need_time'
+
+type Phase =
+  | 'checking'
+  | 'ready_confirmed'
+  | 'not_ready_followup'
+  | 'not_ready_notified'
+  | 'not_ready_private'
+  | 'reminder_followup'
+  | 'reminder_set'
+
+type ReminderTime = 'few_hours' | 'tomorrow' | 'weekend'
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const C = {
   ink: '#1a1714',
@@ -21,42 +36,268 @@ const C = {
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
+const OPTIONS: { key: AvailabilityOption; label: string; description: string }[] = [
+  {
+    key: 'ready',
+    label: "I'm good — ready to engage",
+    description: 'Present and open to this conversation.',
+  },
+  {
+    key: 'stressed',
+    label: "I'm a bit stressed but I can show up",
+    description: "I'm carrying some weight, but I'm here.",
+  },
+  {
+    key: 'not_now',
+    label: "Right now's not a great time for me",
+    description: 'I need a day or two before I can engage.',
+  },
+  {
+    key: 'need_time',
+    label: 'I need a little time — remind me later',
+    description: "Tell me when to come back.",
+  },
+]
+
+const REMINDER_OPTIONS: { key: ReminderTime; label: string }[] = [
+  { key: 'few_hours', label: 'In a few hours' },
+  { key: 'tomorrow', label: 'Tomorrow' },
+  { key: 'weekend', label: 'This weekend' },
+]
+
+// ─── Shared style objects ─────────────────────────────────────────────────────
+
+const pageWrap: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: C.paper,
+  padding: '24px',
+}
+
+const card: React.CSSProperties = {
+  backgroundColor: C.white,
+  border: `1px solid ${C.rule}`,
+  borderRadius: '8px',
+  padding: '40px',
+}
+
+const eyebrow: React.CSSProperties = {
+  fontFamily: "'DM Mono', monospace",
+  fontSize: '10px',
+  letterSpacing: '0.2em',
+  textTransform: 'uppercase',
+  color: C.accent,
+  marginBottom: '20px',
+}
+
+const headline: React.CSSProperties = {
+  fontFamily: "'Playfair Display', serif",
+  fontSize: '26px',
+  fontWeight: 400,
+  color: C.ink,
+  marginBottom: '8px',
+  lineHeight: 1.3,
+}
+
+const subtext: React.CSSProperties = {
+  fontSize: '14px',
+  color: C.muted,
+  lineHeight: 1.7,
+  marginBottom: '28px',
+}
+
+const aiResponse: React.CSSProperties = {
+  fontFamily: "'Playfair Display', serif",
+  fontSize: '22px',
+  fontWeight: 400,
+  color: C.ink,
+  lineHeight: 1.5,
+  margin: '0 0 16px',
+}
+
+const bodyText: React.CSSProperties = {
+  fontSize: '15px',
+  color: '#4a4540',
+  lineHeight: 1.75,
+  marginBottom: '28px',
+}
+
+const footerNote: React.CSSProperties = {
+  fontSize: '12px',
+  color: C.dimmed,
+  lineHeight: 1.6,
+  marginTop: '24px',
+  paddingTop: '20px',
+  borderTop: `1px solid ${C.rule}`,
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function AvailabilityCheckIn() {
   const [phase, setPhase] = useState<Phase>('checking')
+  const [selectedOption, setSelectedOption] = useState<AvailabilityOption | null>(null)
+  const [hoveredOption, setHoveredOption] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (available: boolean) => {
-    setLoading(true)
-    setError(null)
+  // Save to Supabase, non-blocking — won't crash if table doesn't exist yet
+  const saveToSupabase = async (option: AvailabilityOption, extra?: Record<string, unknown>) => {
     try {
-      const { error: saveError } = await supabase.from('availability_check_ins').insert({
-        available,
+      const { error } = await supabase.from('availability_check_ins').insert({
+        availability: option,
+        ...extra,
         checked_in_at: new Date().toISOString(),
       })
-      if (saveError) console.log('Save error (non-blocking):', saveError)
-      setPhase(available ? 'ready' : 'not_ready')
+      if (error) console.log('Supabase save (non-blocking):', error)
     } catch (err) {
-      console.error('Error:', err)
-      setError('Something went wrong. Please try again.')
-    } finally {
-      setLoading(false)
+      console.log('Save error (non-blocking):', err)
     }
   }
 
-  // ─── PHASE: READY ────────────────────────────────────────────────────────────
-  if (phase === 'ready') {
+  const handleOptionSelect = async (option: AvailabilityOption) => {
+    setSelectedOption(option)
+    if (option === 'ready' || option === 'stressed') {
+      setLoading(true)
+      await saveToSupabase(option)
+      setLoading(false)
+      setPhase('ready_confirmed')
+    } else if (option === 'not_now') {
+      setPhase('not_ready_followup')
+    } else if (option === 'need_time') {
+      setPhase('reminder_followup')
+    }
+  }
+
+  const handleNotReadyChoice = async (notify: boolean) => {
+    setLoading(true)
+    await saveToSupabase(selectedOption!, { notify_initiator: notify })
+    setLoading(false)
+    setPhase(notify ? 'not_ready_notified' : 'not_ready_private')
+  }
+
+  const handleReminderChoice = async (time: ReminderTime) => {
+    setLoading(true)
+    await saveToSupabase(selectedOption!, { reminder_time: time })
+    setLoading(false)
+    setPhase('reminder_set')
+  }
+
+  // ─── Sub-option button (reused in follow-up phases) ───────────────────────
+  const renderSubOption = (label: string, onClick: () => void) => (
+    <button
+      key={label}
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        textAlign: 'left',
+        padding: '14px 18px',
+        borderRadius: '8px',
+        border: `1px solid ${C.rule}`,
+        backgroundColor: C.white,
+        cursor: loading ? 'not-allowed' : 'pointer',
+        width: '100%',
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: '14px',
+        fontWeight: 500,
+        color: loading ? C.disabled : C.ink,
+        opacity: loading ? 0.6 : 1,
+        transition: 'border-color 0.15s, color 0.15s',
+      }}
+      onMouseEnter={(e) => {
+        if (!loading) {
+          e.currentTarget.style.borderColor = C.accent
+          e.currentTarget.style.color = C.accent
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!loading) {
+          e.currentTarget.style.borderColor = C.rule
+          e.currentTarget.style.color = C.ink
+        }
+      }}
+    >
+      {label}
+    </button>
+  )
+
+  // ─── PHASE: CHECKING ───────────────────────────────────────────────────────
+  if (phase === 'checking') {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: C.paper,
-          padding: '24px',
-        }}
-      >
+      <div style={pageWrap}>
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+          <div style={card}>
+            <div style={eyebrow}>Availability Check-In</div>
+
+            <h1 style={headline}>How are you feeling right now?</h1>
+            <p style={subtext}>
+              There&apos;s a Bond Session waiting for you. Before you go in, take a moment.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {OPTIONS.map((opt) => {
+                const isHovered = hoveredOption === opt.key
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleOptionSelect(opt.key)}
+                    disabled={loading}
+                    onMouseEnter={() => { if (!loading) setHoveredOption(opt.key) }}
+                    onMouseLeave={() => setHoveredOption(null)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '16px 18px',
+                      borderRadius: '8px',
+                      border: isHovered ? `1px solid ${C.accent}` : `1px solid ${C.rule}`,
+                      backgroundColor: isHovered ? '#fdf8f5' : C.white,
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      width: '100%',
+                      opacity: loading ? 0.6 : 1,
+                      transition: 'border-color 0.15s, background-color 0.15s',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        color: C.ink,
+                        marginBottom: '3px',
+                      }}
+                    >
+                      {opt.label}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '13px',
+                        color: C.muted,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {opt.description}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <p style={footerNote}>
+              There&apos;s no wrong answer here. How you show up matters — including saying you&apos;re not ready.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── PHASE: READY CONFIRMED ────────────────────────────────────────────────
+  if (phase === 'ready_confirmed') {
+    const isStressed = selectedOption === 'stressed'
+    return (
+      <div style={pageWrap}>
         <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
@@ -69,45 +310,64 @@ export default function AvailabilityCheckIn() {
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 24px',
-              fontSize: '22px',
+              fontSize: '20px',
               color: C.green,
             }}
           >
             ✓
           </div>
-          <h1
+          <h2
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '28px',
+              fontSize: '26px',
               fontWeight: 400,
               color: C.ink,
               marginBottom: '12px',
               lineHeight: 1.3,
             }}
           >
-            Good to have you here.
-          </h1>
-          <p style={{ color: '#4a4540', fontSize: '15px', lineHeight: 1.7 }}>
-            Take a moment to settle in. Your session is ready when you are.
+            {isStressed ? 'Good to know.' : 'Good to have you here.'}
+          </h2>
+          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
+            {isStressed
+              ? "It's okay to show up carrying some weight. We'll go at a pace that works. Take your time."
+              : "We'll take it at a reasonable pace. The session is ready whenever you are."}
           </p>
         </div>
       </div>
     )
   }
 
-  // ─── PHASE: NOT READY ────────────────────────────────────────────────────────
-  if (phase === 'not_ready') {
+  // ─── PHASE: NOT READY FOLLOWUP ─────────────────────────────────────────────
+  if (phase === 'not_ready_followup') {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: C.paper,
-          padding: '24px',
-        }}
-      >
+      <div style={pageWrap}>
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+          <div style={card}>
+            <div style={eyebrow}>Availability Check-In</div>
+
+            <p style={aiResponse}>That&apos;s okay to say.</p>
+            <p style={bodyText}>
+              Would you like me to let them know you&apos;ve seen this but need a day or two?
+              I won&apos;t share anything else — just that you&apos;ve acknowledged it.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {renderSubOption('Yes, let them know', () => handleNotReadyChoice(true))}
+              {renderSubOption("No, I'll come back on my own", () => handleNotReadyChoice(false))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── PHASE: NOT READY — NOTIFIED ───────────────────────────────────────────
+  if (phase === 'not_ready_notified') {
+    return (
+      <div style={pageWrap}>
         <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
@@ -120,16 +380,59 @@ export default function AvailabilityCheckIn() {
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 24px',
-              fontSize: '20px',
+              fontSize: '18px',
               color: C.dimmed,
             }}
           >
             —
           </div>
-          <h1
+          <h2
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '28px',
+              fontSize: '26px',
+              fontWeight: 400,
+              color: C.ink,
+              marginBottom: '12px',
+              lineHeight: 1.3,
+            }}
+          >
+            Done.
+          </h2>
+          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
+            They&apos;ll know you&apos;ve seen this and will be in touch when you&apos;re ready.
+            Come back whenever it feels right.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── PHASE: NOT READY — PRIVATE ────────────────────────────────────────────
+  if (phase === 'not_ready_private') {
+    return (
+      <div style={pageWrap}>
+        <style>{FONTS}</style>
+        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
+          <div
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '50%',
+              backgroundColor: C.rule,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              fontSize: '18px',
+              color: C.dimmed,
+            }}
+          >
+            —
+          </div>
+          <h2
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '26px',
               fontWeight: 400,
               color: C.ink,
               marginBottom: '12px',
@@ -137,8 +440,8 @@ export default function AvailabilityCheckIn() {
             }}
           >
             No problem at all.
-          </h1>
-          <p style={{ color: '#4a4540', fontSize: '15px', lineHeight: 1.7 }}>
+          </h2>
+          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
             Come back whenever you&apos;re ready. There&apos;s no rush.
           </p>
         </div>
@@ -146,168 +449,71 @@ export default function AvailabilityCheckIn() {
     )
   }
 
-  // ─── PHASE: CHECK-IN ─────────────────────────────────────────────────────────
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: C.paper,
-        padding: '24px',
-      }}
-    >
-      <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+  // ─── PHASE: REMINDER FOLLOWUP ──────────────────────────────────────────────
+  if (phase === 'reminder_followup') {
+    return (
+      <div style={pageWrap}>
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '440px',
-          backgroundColor: C.white,
-          border: `1px solid ${C.rule}`,
-          borderRadius: '8px',
-          padding: '40px',
-        }}
-      >
-        {/* Eyebrow */}
-        <div
-          style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '10px',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            color: C.accent,
-            marginBottom: '20px',
-          }}
-        >
-          Availability Check-In
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+          <div style={card}>
+            <div style={eyebrow}>Availability Check-In</div>
+
+            <p style={aiResponse}>Of course.</p>
+            <p style={bodyText}>When would be a better time?</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {REMINDER_OPTIONS.map((opt) =>
+                renderSubOption(opt.label, () => handleReminderChoice(opt.key))
+              )}
+            </div>
+          </div>
         </div>
+      </div>
+    )
+  }
 
-        {/* Headline */}
-        <h1
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '28px',
-            fontWeight: 400,
-            color: C.ink,
-            marginBottom: '12px',
-            lineHeight: 1.3,
-          }}
-        >
-          How are you showing up right now?
-        </h1>
-
-        <p
-          style={{
-            fontSize: '15px',
-            color: '#4a4540',
-            lineHeight: 1.7,
-            marginBottom: '32px',
-          }}
-        >
-          Before going further, I want to check in with you first. Are you in a
-          place to engage with this conversation?
-        </p>
-
-        {/* Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button
-            onClick={() => handleSubmit(true)}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              backgroundColor: loading ? C.rule : C.accent,
-              color: loading ? C.disabled : C.white,
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              fontWeight: 500,
-              border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) e.currentTarget.style.backgroundColor = C.accentHover
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.currentTarget.style.backgroundColor = C.accent
-            }}
-          >
-            {loading ? 'Saving…' : "Yes, I'm ready"}
-          </button>
-
-          <button
-            onClick={() => handleSubmit(false)}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              backgroundColor: 'transparent',
-              color: loading ? C.disabled : '#4a4540',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              fontWeight: 500,
-              border: `1px solid ${C.rule}`,
-              cursor: loading ? 'not-allowed' : 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.borderColor = C.accent
-                e.currentTarget.style.color = C.accent
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.currentTarget.style.borderColor = C.rule
-                e.currentTarget.style.color = '#4a4540'
-              }
-            }}
-          >
-            {loading ? 'Saving…' : 'Not right now'}
-          </button>
-        </div>
-
-        {/* Error */}
-        {error && (
+  // ─── PHASE: REMINDER SET ───────────────────────────────────────────────────
+  if (phase === 'reminder_set') {
+    return (
+      <div style={pageWrap}>
+        <style>{FONTS}</style>
+        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
             style={{
-              marginTop: '16px',
-              padding: '12px 16px',
-              backgroundColor: '#fdf5f0',
-              border: `1px solid ${C.rule}`,
-              borderRadius: '8px',
+              width: '52px',
+              height: '52px',
+              borderRadius: '50%',
+              backgroundColor: C.rule,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              fontSize: '18px',
+              color: C.dimmed,
             }}
           >
-            <p
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '13px',
-                color: C.accent,
-                margin: 0,
-              }}
-            >
-              {error}
-            </p>
+            ↺
           </div>
-        )}
-
-        {/* Footer note */}
-        <p
-          style={{
-            fontSize: '12px',
-            color: C.dimmed,
-            lineHeight: 1.6,
-            marginTop: '24px',
-            paddingTop: '20px',
-            borderTop: `1px solid ${C.rule}`,
-          }}
-        >
-          There&apos;s no wrong answer here. If you&apos;re not in the right headspace,
-          saying so is the right call.
-        </p>
+          <h2
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '26px',
+              fontWeight: 400,
+              color: C.ink,
+              marginBottom: '12px',
+              lineHeight: 1.3,
+            }}
+          >
+            Got it.
+          </h2>
+          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
+            The session will be here when you come back.
+          </p>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  return null
 }
