@@ -39,28 +39,11 @@ export default function AvailabilityCheckIn() {
           <div className="mb-6" style={{ fontSize: '48px' }}>
             {isAvailable ? '✓' : '—'}
           </div>
-          <h1
-            className="mb-3"
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '32px',
-              fontWeight: 400,
-              color: '#1a1714',
-              lineHeight: 1.2,
-            }}
-          >
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '32px', fontWeight: 400, color: '#1a1714', marginBottom: '12px', lineHeight: 1.2 }}>
             {isAvailable ? 'Thanks for letting us know.' : 'No problem.'}
           </h1>
-          <p
-            style={{
-              color: '#4a4540',
-              fontSize: '15px',
-              lineHeight: 1.7,
-            }}
-          >
-            {isAvailable
-              ? "We're glad you're here and ready. Your session is waiting."
-              : 'Feel free to check back whenever you're ready.'}
+          <p style={{ color: '#4a4540', fontSize: '15px', lineHeight: 1.7 }}>
+            {isAvailable ? "We're glad you're here and ready. Your session is waiting." : 'Feel free to check back whenever you're ready.'}
           </p>
         </div>
       </div>
@@ -74,122 +57,42 @@ export default function AvailabilityCheckIn() {
         body { font-family: 'DM Sans', sans-serif; }
       `}</style>
 
-      <div
-        className="w-full max-w-md p-10"
-        style={{
-          backgroundColor: 'white',
-          border: '1px solid #e0d8cc',
-          borderRadius: '8px',
-        }}
-      >
-        {/* Eyebrow label */}
-        <div
-          style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '10px',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            color: '#c4622d',
-            marginBottom: '20px',
-          }}
-        >
+      <div className="w-full max-w-md p-10" style={{ backgroundColor: 'white', border: '1px solid #e0d8cc', borderRadius: '8px' }}>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c4622d', marginBottom: '20px' }}>
           Availability Check-In
         </div>
 
-        {/* Title */}
-        <h1
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '28px',
-            fontWeight: 400,
-            color: '#1a1714',
-            marginBottom: '12px',
-            lineHeight: 1.2,
-          }}
-        >
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 400, color: '#1a1714', marginBottom: '12px', lineHeight: 1.2 }}>
           How are you showing up right now?
         </h1>
 
-        {/* Subtitle */}
-        <p
-          style={{
-            fontSize: '15px',
-            color: '#4a4540',
-            lineHeight: 1.7,
-            marginBottom: '32px',
-          }}
-        >
+        <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.7, marginBottom: '32px' }}>
           Before we begin, let's check in. Are you emotionally available for this conversation?
         </p>
 
-        {/* Button container */}
         <div className="space-y-3">
           <button
             onClick={() => handleSubmit(true)}
             disabled={loading}
-            className="w-full py-3 px-4 rounded-lg transition-all"
-            style={{
-              backgroundColor: loading ? '#c4622d' : '#c4622d',
-              color: 'white',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              fontWeight: 500,
-              border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) e.currentTarget.style.backgroundColor = '#a0481f'
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.currentTarget.style.backgroundColor = '#c4622d'
-            }}
+            style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', backgroundColor: '#c4622d', color: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 500, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#a0481f' }}
+            onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = '#c4622d' }}
           >
-            {loading ? 'Saving...' : 'Yes, I'm ready'}
+            {loading ? 'Saving...' : "Yes, I'm ready"}
           </button>
 
           <button
             onClick={() => handleSubmit(false)}
             disabled={loading}
-            className="w-full py-3 px-4 rounded-lg transition-all"
-            style={{
-              backgroundColor: 'transparent',
-              color: '#4a4540',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              fontWeight: 500,
-              border: '1px solid #e0d8cc',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.borderColor = '#c4622d'
-                e.currentTarget.style.color = '#c4622d'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.currentTarget.style.borderColor = '#e0d8cc'
-                e.currentTarget.style.color = '#4a4540'
-              }
-            }}
+            style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', backgroundColor: 'transparent', color: '#4a4540', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 500, border: '1px solid #e0d8cc', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+            onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.borderColor = '#c4622d'; e.currentTarget.style.color = '#c4622d' } }}
+            onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.borderColor = '#e0d8cc'; e.currentTarget.style.color = '#4a4540' } }}
           >
             {loading ? 'Saving...' : 'Not right now'}
           </button>
         </div>
 
-        {/* Helper text */}
-        <p
-          style={{
-            fontSize: '12px',
-            color: '#8a8480',
-            lineHeight: 1.6,
-            marginTop: '24px',
-            paddingTop: '20px',
-            borderTop: '1px solid #e0d8cc',
-          }}
-        >
+        <p style={{ fontSize: '12px', color: '#8a8480', lineHeight: 1.6, marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e0d8cc' }}>
           This check-in helps us understand your readiness. If you're depleted or defensive, that's okay—just let us know.
         </p>
       </div>
