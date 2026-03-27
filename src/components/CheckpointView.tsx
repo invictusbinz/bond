@@ -12,6 +12,7 @@
 // Only their own answer is visible. Bond uses both to decide what comes next.
 
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 type Props = {
   sessionId: string
@@ -39,6 +40,7 @@ const C = {
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 export default function CheckpointView({ sessionId, token, myRole, onResponded }: Props) {
+  const m = useIsMobile()
   const [choice, setChoice] = useState<CheckpointChoice | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -85,7 +87,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: C.paper,
-        padding: '48px 24px',
+        padding: m ? '24px 16px' : '48px 24px',
       }}
     >
       <style>{`
@@ -112,7 +114,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
         {/* Headline */}
         <h1 style={{
           fontFamily: "'Playfair Display', serif",
-          fontSize: '30px',
+          fontSize: m ? '26px' : '30px',
           fontWeight: 400,
           color: C.ink,
           lineHeight: 1.3,
@@ -127,7 +129,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
           fontSize: '16px',
           color: C.muted,
           lineHeight: 1.75,
-          marginBottom: '48px',
+          marginBottom: m ? '28px' : '48px',
           maxWidth: '460px',
         }}>
           You've each shared something real. Before moving forward, Bond wants to ask you one question — privately.
@@ -239,6 +241,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
               onClick={handleSubmit}
               disabled={!choice || submitting}
               style={{
+                width: m ? '100%' : 'auto',
                 padding: '14px 28px',
                 borderRadius: '6px',
                 border: 'none',

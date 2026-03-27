@@ -10,6 +10,7 @@
 // session page can re-fetch status and show the right next screen.
 
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 // New format: personalized per-person views (EFT+NVC framework)
 // Old format: 4-section generic structure (backward compat for existing sessions)
@@ -65,6 +66,7 @@ const LEGACY_SECTIONS = [
 ]
 
 export default function SynthesisView({ synthesis, sessionId, token, myRole, onResponded, isRevised = false }: Props) {
+  const m = useIsMobile()
   // Accuracy flow (original synthesis)
   const [accuracyChoice, setAccuracyChoice] = useState<AccuracyChoice | null>(null)
   const [context, setContext] = useState('')
@@ -126,7 +128,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
       style={{
         minHeight: '100vh',
         backgroundColor: C.paper,
-        padding: '48px 24px 80px',
+        padding: m ? '24px 16px 60px' : '48px 24px 80px',
       }}
     >
       <style>{`
@@ -140,7 +142,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
       <div style={{ maxWidth: '580px', margin: '0 auto' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '48px' }}>
+        <div style={{ marginBottom: m ? '28px' : '48px' }}>
           <p style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: '11px',
@@ -153,7 +155,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
           </p>
           <h1 style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: '28px',
+            fontSize: m ? '24px' : '28px',
             fontWeight: 400,
             color: C.ink,
             lineHeight: 1.3,
@@ -184,7 +186,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
                   key={i}
                   style={{
                     fontFamily: "'Playfair Display', serif",
-                    fontSize: '18px',
+                    fontSize: m ? '16px' : '18px',
                     fontWeight: 400,
                     fontStyle: 'italic',
                     color: C.ink,
@@ -240,8 +242,8 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
         {!submitted && (
           <div
             style={{
-              marginTop: '52px',
-              padding: '32px',
+              marginTop: m ? '32px' : '52px',
+              padding: m ? '20px' : '32px',
               backgroundColor: C.softAmber,
               borderRadius: '8px',
             }}
@@ -411,6 +413,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
               onClick={handleSubmit}
               disabled={!canSubmit || submitting}
               style={{
+                width: m ? '100%' : 'auto',
                 padding: '14px 28px',
                 borderRadius: '6px',
                 border: 'none',

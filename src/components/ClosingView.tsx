@@ -8,6 +8,7 @@
 //      Debrief is per-person and private. Each person sees their own.
 
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const C = {
   ink: '#1a1714',
@@ -31,6 +32,7 @@ type Props = {
 type DebriefPhase = 'idle' | 'loading' | 'ready' | 'error'
 
 export default function ClosingView({ sessionId, token }: Props) {
+  const m = useIsMobile()
   const [debriefPhase, setDebriefPhase] = useState<DebriefPhase>('idle')
   const [debrief, setDebrief] = useState<string | null>(null)
 
@@ -79,7 +81,7 @@ export default function ClosingView({ sessionId, token }: Props) {
       {/* ── Header ── */}
       <div
         style={{
-          padding: '18px 24px',
+          padding: m ? '12px 16px' : '18px 24px',
           borderBottom: `1px solid ${C.rule}`,
           backgroundColor: C.white,
           flexShrink: 0,
@@ -96,14 +98,14 @@ export default function ClosingView({ sessionId, token }: Props) {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '56px 24px 72px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: m ? '28px 16px 48px' : '56px 24px 72px' }}>
         <div style={{ maxWidth: '520px', margin: '0 auto' }}>
 
           {/* ── Closing message ── */}
           <p
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '30px',
+              fontSize: m ? '26px' : '30px',
               fontWeight: 400,
               color: C.ink,
               lineHeight: 1.3,

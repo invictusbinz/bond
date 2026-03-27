@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 type Mode = 'heard' | 'figure_it_out'
 type Phase = 'mode_selection' | 'intake' | 'complete'
@@ -69,6 +70,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const m = useIsMobile()
 
   // Persist messages to localStorage after every update
   useEffect(() => {
@@ -348,6 +350,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
   return (
     <div
       style={{
+        // Use -webkit-fill-available on iOS to respect the browser chrome height
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -363,12 +366,18 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
           40%            { opacity: 1;   transform: scale(1.1); }
         }
+        /* iOS Safari: fill the visible viewport, not the full 100vh */
+        @supports (-webkit-touch-callout: none) {
+          .intake-shell { height: -webkit-fill-available; }
+        }
+        /* Hide keyboard shortcut hint on touch devices */
+        @media (max-width: 640px) { .cmd-hint { display: none; } }
       `}</style>
 
       {/* ── Header ── */}
       <div
         style={{
-          padding: '18px 24px',
+          padding: m ? '12px 16px' : '18px 24px',
           borderBottom: `1px solid ${C.rule}`,
           backgroundColor: C.white,
           flexShrink: 0,
@@ -408,7 +417,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       </div>
 
       {/* ── Conversation area ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 24px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: m ? '20px 16px 16px' : '36px 24px 24px' }}>
         <div style={{ maxWidth: '560px', margin: '0 auto' }}>
 
           {/* History: previous exchanges (muted) */}
@@ -460,7 +469,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
               <p
                 style={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: historyMessages.length === 0 ? '24px' : '20px',
+                  fontSize: historyMessages.length === 0 ? (m ? '20px' : '24px') : (m ? '17px' : '20px'),
                   fontWeight: 400,
                   color: C.ink,
                   lineHeight: 1.55,
@@ -535,7 +544,9 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
         style={{
           borderTop: `1px solid ${C.rule}`,
           backgroundColor: C.white,
-          padding: '20px 24px',
+          padding: m ? '12px 16px' : '20px 24px',
+          // On iOS, add extra bottom padding for the home indicator safe area
+          paddingBottom: m ? 'max(12px, env(safe-area-inset-bottom, 12px))' : '20px',
           flexShrink: 0,
         }}
       >
@@ -574,6 +585,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
             }}
           >
             <span
+              className="cmd-hint"
               style={{
                 fontFamily: "'DM Mono', monospace",
                 fontSize: '10px',
@@ -644,6 +656,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
 
 function CompleteView({ inviteUrl, joinCode }: { inviteUrl: string | null; joinCode: string | null }) {
   const [copied, setCopied] = useState(false)
+  const m = useIsMobile()
 
   const handleCopy = () => {
     if (!inviteUrl) return
@@ -661,7 +674,7 @@ function CompleteView({ inviteUrl, joinCode }: { inviteUrl: string | null; joinC
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: C.paper,
-        padding: '24px',
+        padding: m ? '16px' : '24px',
       }}
     >
       <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
@@ -695,7 +708,7 @@ function CompleteView({ inviteUrl, joinCode }: { inviteUrl: string | null; joinC
         <h1
           style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: '30px',
+            fontSize: m ? '26px' : '30px',
             fontWeight: 400,
             color: C.ink,
             lineHeight: 1.3,

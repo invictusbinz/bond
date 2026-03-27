@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ type Props = {
 const storageKey = (id?: string) => id ? `bond_intake_b_${id}` : null
 
 export default function IntakePersonB({ sessionId, token, partnerSummary = '' }: Props) {
+  const m = useIsMobile()
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
     const key = storageKey(sessionId)
@@ -198,7 +200,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: C.paper,
-          padding: '24px',
+          padding: m ? '16px' : '24px',
         }}
       >
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
@@ -222,7 +224,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '30px',
+              fontSize: m ? '26px' : '30px',
               fontWeight: 400,
               color: C.ink,
               lineHeight: 1.3,
@@ -253,6 +255,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
   // ─── PHASE: INTAKE ───────────────────────────────────────────────────────────
   return (
     <div
+      className="intake-shell"
       style={{
         height: '100vh',
         display: 'flex',
@@ -269,12 +272,14 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
           40%            { opacity: 1;   transform: scale(1.1); }
         }
+        @supports (-webkit-touch-callout: none) { .intake-shell { height: -webkit-fill-available; } }
+        @media (max-width: 640px) { .cmd-hint { display: none; } }
       `}</style>
 
       {/* ── Header ── */}
       <div
         style={{
-          padding: '18px 24px',
+          padding: m ? '12px 16px' : '18px 24px',
           borderBottom: `1px solid ${C.rule}`,
           backgroundColor: C.white,
           flexShrink: 0,
@@ -333,7 +338,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '10px 24px',
+                padding: m ? '10px 16px' : '10px 24px',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -367,7 +372,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
 
             {/* Expanded summary text */}
             {contextOpen && (
-              <div style={{ padding: '0 24px 16px' }}>
+              <div style={{ padding: m ? '0 16px 16px' : '0 24px 16px' }}>
                 <p
                   style={{
                     fontFamily: "'DM Sans', sans-serif",
@@ -387,7 +392,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
       )}
 
       {/* ── Conversation area ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 24px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: m ? '20px 16px 16px' : '36px 24px 24px' }}>
         <div style={{ maxWidth: '560px', margin: '0 auto' }}>
 
           {/* History: previous exchanges (muted) */}
@@ -439,7 +444,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
               <p
                 style={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: historyMessages.length === 0 ? '24px' : '20px',
+                  fontSize: historyMessages.length === 0 ? (m ? '20px' : '24px') : (m ? '17px' : '20px'),
                   fontWeight: 400,
                   color: C.ink,
                   lineHeight: 1.55,
@@ -514,7 +519,8 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
         style={{
           borderTop: `1px solid ${C.rule}`,
           backgroundColor: C.white,
-          padding: '20px 24px',
+          padding: m ? '12px 16px' : '20px 24px',
+          paddingBottom: m ? 'max(12px, env(safe-area-inset-bottom, 12px))' : '20px',
           flexShrink: 0,
         }}
       >
@@ -553,6 +559,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
             }}
           >
             <span
+              className="cmd-hint"
               style={{
                 fontFamily: "'DM Mono', monospace",
                 fontSize: '10px',

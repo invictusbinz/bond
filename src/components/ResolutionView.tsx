@@ -9,6 +9,7 @@
 // After both respond, Bond acknowledges the step and closes the session warmly.
 
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 type Props = {
   sessionId: string
@@ -33,6 +34,7 @@ const C = {
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 export default function ResolutionView({ sessionId, token, myRole, onResponded }: Props) {
+  const m = useIsMobile()
   const [commitment, setCommitment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -83,7 +85,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
       style={{
         minHeight: '100vh',
         backgroundColor: C.paper,
-        padding: '48px 24px 80px',
+        padding: m ? '24px 16px 60px' : '48px 24px 80px',
       }}
     >
       <style>{`
@@ -91,6 +93,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
         * { box-sizing: border-box; }
         body { font-family: 'DM Sans', sans-serif; margin: 0; }
         textarea:focus { outline: none; }
+        @media (max-width: 640px) { .cmd-hint { display: none; } }
       `}</style>
 
       <div style={{ maxWidth: '540px', margin: '0 auto' }}>
@@ -110,7 +113,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
         {/* Heading */}
         <h1 style={{
           fontFamily: "'Playfair Display', serif",
-          fontSize: '30px',
+          fontSize: m ? '26px' : '30px',
           fontWeight: 400,
           color: C.ink,
           lineHeight: 1.3,
@@ -125,7 +128,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
           fontSize: '16px',
           color: C.muted,
           lineHeight: 1.75,
-          marginBottom: '48px',
+          marginBottom: m ? '28px' : '48px',
           maxWidth: '460px',
         }}>
           That matters. Bond won't share what you write here with your partner — this is just for you to get clear on what you're bringing to the next step.
@@ -135,7 +138,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
         {!submitted && (
           <div
             style={{
-              padding: '32px',
+              padding: m ? '20px' : '32px',
               backgroundColor: C.softAmber,
               borderRadius: '8px',
             }}
@@ -193,8 +196,8 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
               </p>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{
+            <div style={{ display: 'flex', alignItems: m ? 'stretch' : 'center', flexDirection: m ? 'column' : 'row', justifyContent: 'space-between', gap: m ? '12px' : '0' }}>
+              <span className="cmd-hint" style={{
                 fontFamily: "'DM Mono', monospace",
                 fontSize: '10px',
                 color: '#c0b8b0',
@@ -206,6 +209,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
                 onClick={handleSubmit}
                 disabled={!commitment.trim() || submitting}
                 style={{
+                  width: m ? '100%' : 'auto',
                   padding: '13px 28px',
                   borderRadius: '6px',
                   border: 'none',
