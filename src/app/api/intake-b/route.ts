@@ -93,10 +93,11 @@ ${closingInstruction}`
         { onConflict: 'session_id,person' }
       )
 
-      // Advance session status to both_complete
+      // Advance session status to synthesis_generating.
+      // The session page detects this and triggers /api/synthesize automatically.
       await supabase
         .from('sessions')
-        .update({ status: 'both_complete' })
+        .update({ status: 'synthesis_generating' })
         .eq('id', sessionId)
         .eq('person_b_token', token)
     }

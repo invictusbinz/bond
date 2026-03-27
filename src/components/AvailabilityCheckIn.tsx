@@ -137,13 +137,15 @@ const footerNote: React.CSSProperties = {
 
 type Props = {
   // Called when Person B confirms they are ready to proceed to intake.
-  // If not provided, the ready_confirmed screen is a dead-end (original behaviour).
   onReady?: () => void
+  // Called when Person B selects not_now or need_time — lets the session page
+  // show a warm "come back later" screen instead of the built-in dead-end copy.
+  onNotReady?: () => void
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AvailabilityCheckIn({ onReady }: Props = {}) {
+export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {}) {
   const [phase, setPhase] = useState<Phase>('checking')
   const [selectedOption, setSelectedOption] = useState<AvailabilityOption | null>(null)
   const [hoveredOption, setHoveredOption] = useState<string | null>(null)
@@ -181,14 +183,22 @@ export default function AvailabilityCheckIn({ onReady }: Props = {}) {
     setLoading(true)
     await saveToSupabase(selectedOption!, { notify_initiator: notify })
     setLoading(false)
-    setPhase(notify ? 'not_ready_notified' : 'not_ready_private')
+    if (onNotReady) {
+      onNotReady()
+    } else {
+      setPhase(notify ? 'not_ready_notified' : 'not_ready_private')
+    }
   }
 
   const handleReminderChoice = async (time: ReminderTime) => {
     setLoading(true)
     await saveToSupabase(selectedOption!, { reminder_time: time })
     setLoading(false)
-    setPhase('reminder_set')
+    if (onNotReady) {
+      onNotReady()
+    } else {
+      setPhase('reminder_set')
+    }
   }
 
   // ─── Sub-option button (reused in follow-up phases) ───────────────────────
