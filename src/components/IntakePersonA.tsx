@@ -115,7 +115,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       if (data.isComplete) {
         const key = storageKeyA(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
-        setPhase('complete')
+        setTimeout(() => setPhase('complete'), 3500)
       }
     } catch (err) {
       console.error('Force close error:', err)
@@ -159,7 +159,10 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
         // Intake saved to Supabase + session status advanced by the API route.
         const key = storageKeyA(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
-        setPhase('complete')
+        // Let the closing message breathe in the conversation view for a moment
+        // before transitioning — without this pause the screen cuts away before
+        // the person has finished reading what Bond said.
+        setTimeout(() => setPhase('complete'), 3500)
       }
     } catch (err) {
       console.error('Intake error:', err)
@@ -334,137 +337,11 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
 
   // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
   if (phase === 'complete') {
-    const closingText = messages[messages.length - 1]?.text ?? ''
-    // Use the invite URL passed from the session page (built with person_b_token).
-    // Never use Person A's own token here — that would give them access to nothing useful.
+    // The invite URL for Person B — built by session page with person_b_token.
     const inviteUrl = inviteUrlProp ?? null
 
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: C.paper,
-          padding: '24px',
-        }}
-      >
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
-        <div style={{ width: '100%', maxWidth: '480px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              backgroundColor: C.greenSoft,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              fontSize: '22px',
-              color: C.green,
-            }}
-          >
-            ✓
-          </div>
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '26px',
-              fontWeight: 400,
-              color: C.ink,
-              marginBottom: '16px',
-              lineHeight: 1.3,
-            }}
-          >
-            Your side is in.
-          </h2>
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '15px',
-              color: '#4a4540',
-              lineHeight: 1.75,
-              marginBottom: inviteUrl ? '32px' : '0',
-            }}
-          >
-            {closingText}
-          </p>
-
-          {/* Invite link — shown when session is linked */}
-          {inviteUrl && (
-            <div
-              style={{
-                backgroundColor: C.white,
-                border: `1px solid ${C.rule}`,
-                borderRadius: '8px',
-                padding: '20px 22px',
-                textAlign: 'left',
-              }}
-            >
-              <p
-                style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: '10px',
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: C.accent,
-                  marginBottom: '10px',
-                }}
-              >
-                Send this to them
-              </p>
-              <p
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '13px',
-                  color: C.muted,
-                  marginBottom: '14px',
-                  lineHeight: 1.6,
-                }}
-              >
-                Share this link with the other person so they can add their side.
-              </p>
-              <div
-                style={{
-                  backgroundColor: C.paper,
-                  border: `1px solid ${C.rule}`,
-                  borderRadius: '6px',
-                  padding: '10px 14px',
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: '12px',
-                  color: C.ink,
-                  wordBreak: 'break-all',
-                  marginBottom: '12px',
-                  lineHeight: 1.5,
-                }}
-              >
-                {inviteUrl}
-              </div>
-              <button
-                onClick={() => navigator.clipboard?.writeText(inviteUrl)}
-                style={{
-                  width: '100%',
-                  padding: '10px 16px',
-                  borderRadius: '6px',
-                  backgroundColor: C.accent,
-                  color: C.white,
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
-              >
-                Copy link
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <CompleteView inviteUrl={inviteUrl} />
     )
   }
 
@@ -759,6 +636,138 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sub-component: complete screen ──────────────────────────────────────────
+
+function CompleteView({ inviteUrl }: { inviteUrl: string | null }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    if (!inviteUrl) return
+    navigator.clipboard?.writeText(inviteUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: C.paper,
+        padding: '24px',
+      }}
+    >
+      <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+
+      <div style={{ width: '100%', maxWidth: '440px' }}>
+
+        {/* Eyebrow */}
+        <p
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: '11px',
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            color: C.accent,
+            marginBottom: '20px',
+          }}
+        >
+          Your side is in
+        </p>
+
+        {/* Heading */}
+        <h1
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: '30px',
+            fontWeight: 400,
+            color: C.ink,
+            lineHeight: 1.3,
+            marginBottom: '16px',
+          }}
+        >
+          Bond has what it needs from you.
+        </h1>
+
+        {/* Sub-text */}
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '16px',
+            color: C.muted,
+            lineHeight: 1.75,
+            marginBottom: '40px',
+            maxWidth: '380px',
+          }}
+        >
+          When they share their side, Bond will put the full picture together — and you&apos;ll both see it at the same time.
+        </p>
+
+        {/* Invite link section */}
+        {inviteUrl && (
+          <div>
+            <p
+              style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '10px',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: C.dimmed,
+                marginBottom: '10px',
+              }}
+            >
+              Send them this link
+            </p>
+
+            {/* URL display box */}
+            <div
+              style={{
+                backgroundColor: C.white,
+                border: `1px solid ${C.rule}`,
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginBottom: '12px',
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '12px',
+                color: C.muted,
+                wordBreak: 'break-all',
+                lineHeight: 1.5,
+              }}
+            >
+              {inviteUrl}
+            </div>
+
+            {/* Copy button with proper copied feedback */}
+            <button
+              onClick={handleCopy}
+              style={{
+                width: '100%',
+                padding: '13px 16px',
+                borderRadius: '8px',
+                backgroundColor: copied ? C.green : C.accent,
+                color: C.white,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                letterSpacing: '0.01em',
+              }}
+            >
+              {copied ? 'Copied ✓' : 'Copy invite link'}
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   )

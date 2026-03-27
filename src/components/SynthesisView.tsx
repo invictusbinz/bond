@@ -24,9 +24,14 @@ type Props = {
   token: string
   myRole: 'a' | 'b'
   onResponded: () => void
+  // When true: this is the revised synthesis. Instead of the accuracy question,
+  // show the checkpoint question inline ("Do you want to work through this together?").
+  // Submits as step: 'checkpoint' rather than 'synthesis_accuracy'.
+  isRevised?: boolean
 }
 
 type AccuracyChoice = 'yes' | 'partially' | 'no'
+type CheckpointChoice = 'yes' | 'not_yet'
 
 const C = {
   ink: '#1a1714',
@@ -64,34 +69,44 @@ const SECTIONS = [
   },
 ]
 
-export default function SynthesisView({ synthesis, sessionId, token, myRole, onResponded }: Props) {
-  const [choice, setChoice] = useState<AccuracyChoice | null>(null)
+export default function SynthesisView({ synthesis, sessionId, token, myRole, onResponded, isRevised = false }: Props) {
+  // Accuracy flow (original synthesis)
+  const [accuracyChoice, setAccuracyChoice] = useState<AccuracyChoice | null>(null)
   const [context, setContext] = useState('')
+  // Checkpoint flow (revised synthesis)
+  const [checkpointChoice, setCheckpointChoice] = useState<CheckpointChoice | null>(null)
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
 
   async function handleSubmit() {
-    if (!choice) return
+    const hasChoice = isRevised ? !!checkpointChoice : !!accuracyChoice
+    if (!hasChoice) return
     setSubmitting(true)
     setError(null)
 
     try {
-      // Determine new session status based on who's responding
-      const newStatus = myRole === 'a' ? 'a_responded_synthesis' : 'b_responded_synthesis'
+      let step: string
+      let response: object
+      let newStatus: string
 
-      // Save response to session_responses
+      if (isRevised) {
+        // Revised synthesis → submit as checkpoint step directly
+        step = 'checkpoint'
+        response = { choice: checkpointChoice }
+        newStatus = myRole === 'a' ? 'a_responded_checkpoint' : 'b_responded_checkpoint'
+      } else {
+        // Original synthesis → submit as synthesis_accuracy
+        step = 'synthesis_accuracy'
+        response = { choice: accuracyChoice, context: context.trim() || null }
+        newStatus = myRole === 'a' ? 'a_responded_synthesis' : 'b_responded_synthesis'
+      }
+
       const res = await fetch('/api/session-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          token,
-          person: myRole,
-          step: 'synthesis_accuracy',
-          response: { choice, context: context.trim() || null },
-          newStatus,
-        }),
+        body: JSON.stringify({ sessionId, token, person: myRole, step, response, newStatus }),
       })
 
       if (!res.ok) {
@@ -99,7 +114,6 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
       }
 
       setSubmitted(true)
-      // Short pause so the submitted state is visible, then hand off to session page
       setTimeout(() => onResponded(), 800)
     } catch (err) {
       console.error(err)
@@ -109,7 +123,8 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
     }
   }
 
-  const needsContext = choice === 'partially' || choice === 'no'
+  const needsContext = accuracyChoice === 'partially' || accuracyChoice === 'no'
+  const canSubmit = isRevised ? !!checkpointChoice : (!!accuracyChoice && !(needsContext && context.trim().length < 2))
 
   return (
     <div
@@ -198,7 +213,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
           ))}
         </div>
 
-        {/* Accuracy question */}
+        {/* Response section — accuracy question (original) or checkpoint question (revised) */}
         {!submitted && (
           <div
             style={{
@@ -208,82 +223,154 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
               borderRadius: '8px',
             }}
           >
-            <p style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '20px',
-              fontWeight: 400,
-              color: C.ink,
-              marginBottom: '8px',
-              lineHeight: 1.4,
-            }}>
-              Does this feel accurate to you?
-            </p>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              color: C.muted,
-              marginBottom: '24px',
-              lineHeight: 1.6,
-            }}>
-              Only you can see your answer. Be honest — Bond uses this to decide what comes next.
-            </p>
-
-            {/* Choice buttons */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
-              {(['yes', 'partially', 'no'] as AccuracyChoice[]).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setChoice(opt)}
-                  style={{
-                    padding: '10px 22px',
-                    borderRadius: '6px',
-                    border: `1.5px solid ${choice === opt ? C.accent : C.rule}`,
-                    backgroundColor: choice === opt ? C.accentSoft : C.white,
-                    color: choice === opt ? C.accent : C.ink,
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '14px',
-                    fontWeight: choice === opt ? 500 : 400,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {opt === 'yes' ? 'Yes, it does' : opt === 'partially' ? 'Partially' : 'Not really'}
-                </button>
-              ))}
-            </div>
-
-            {/* Context textarea — only shown for partial/no */}
-            {needsContext && (
-              <div style={{ marginBottom: '24px' }}>
+            {isRevised ? (
+              /* ── Checkpoint question (revised synthesis path) ── */
+              <>
+                <p style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '22px',
+                  fontWeight: 400,
+                  fontStyle: 'italic',
+                  color: C.ink,
+                  marginBottom: '8px',
+                  lineHeight: 1.4,
+                }}>
+                  Do you want to work through this together?
+                </p>
                 <p style={{
                   fontFamily: "'DM Sans', sans-serif",
                   fontSize: '14px',
                   color: C.muted,
-                  marginBottom: '10px',
+                  marginBottom: '28px',
+                  lineHeight: 1.6,
                 }}>
-                  {choice === 'partially'
-                    ? "What did it miss or get wrong?"
-                    : "What felt off? Help Bond understand."}
+                  Only you can see your answer. There&apos;s no wrong response — Bond just needs to know where you are.
                 </p>
-                <textarea
-                  value={context}
-                  onChange={e => setContext(e.target.value)}
-                  placeholder="Share what's missing or inaccurate…"
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '6px',
-                    border: `1.5px solid ${C.rule}`,
-                    backgroundColor: C.white,
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: '14px',
-                    color: C.ink,
-                    lineHeight: 1.6,
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+                  <button
+                    onClick={() => setCheckpointChoice('yes')}
+                    style={{
+                      padding: '16px 20px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${checkpointChoice === 'yes' ? C.accent : C.rule}`,
+                      backgroundColor: checkpointChoice === 'yes' ? C.accentSoft : C.white,
+                      color: C.ink,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '14px',
+                      fontWeight: checkpointChoice === 'yes' ? 500 : 400,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <span style={{ display: 'block', marginBottom: '2px' }}>Yes, I want to work through this</span>
+                    <span style={{ fontSize: '12px', color: C.muted, fontWeight: 400 }}>I&apos;m ready to move forward together.</span>
+                  </button>
+
+                  <button
+                    onClick={() => setCheckpointChoice('not_yet')}
+                    style={{
+                      padding: '16px 20px',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${checkpointChoice === 'not_yet' ? C.blue : C.rule}`,
+                      backgroundColor: checkpointChoice === 'not_yet' ? C.softBlue : C.white,
+                      color: C.ink,
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '14px',
+                      fontWeight: checkpointChoice === 'not_yet' ? 500 : 400,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <span style={{ display: 'block', marginBottom: '2px' }}>Not yet — I need more time</span>
+                    <span style={{ fontSize: '12px', color: C.muted, fontWeight: 400 }}>This was useful. I&apos;m just not ready to take the next step right now.</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* ── Accuracy question (original synthesis path) ── */
+              <>
+                <p style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '20px',
+                  fontWeight: 400,
+                  color: C.ink,
+                  marginBottom: '8px',
+                  lineHeight: 1.4,
+                }}>
+                  Does this feel accurate to you?
+                </p>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  color: C.muted,
+                  marginBottom: '24px',
+                  lineHeight: 1.6,
+                }}>
+                  Only you can see your answer. Be honest — Bond uses this to decide what comes next.
+                </p>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                  {(['yes', 'partially', 'no'] as AccuracyChoice[]).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setAccuracyChoice(opt)}
+                      style={{
+                        padding: '10px 22px',
+                        borderRadius: '6px',
+                        border: `1.5px solid ${accuracyChoice === opt ? C.accent : C.rule}`,
+                        backgroundColor: accuracyChoice === opt ? C.accentSoft : C.white,
+                        color: accuracyChoice === opt ? C.accent : C.ink,
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '14px',
+                        fontWeight: accuracyChoice === opt ? 500 : 400,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {opt === 'yes' ? 'Yes, it does' : opt === 'partially' ? 'Partially' : 'Not really'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Context textarea — only shown for partial/no */}
+                {needsContext && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '14px',
+                      color: C.muted,
+                      marginBottom: '10px',
+                    }}>
+                      {accuracyChoice === 'partially'
+                        ? "What did it miss or get wrong?"
+                        : "What felt off? Help Bond understand."}
+                    </p>
+                    <textarea
+                      value={context}
+                      onChange={e => setContext(e.target.value)}
+                      placeholder="Share what's missing or inaccurate…"
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        borderRadius: '6px',
+                        border: `1.5px solid ${C.rule}`,
+                        backgroundColor: C.white,
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '14px',
+                        color: C.ink,
+                        lineHeight: 1.6,
+                        resize: 'vertical',
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             {error && (
@@ -299,7 +386,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
 
             <button
               onClick={handleSubmit}
-              disabled={!choice || submitting || (needsContext && context.trim().length < 2)}
+              disabled={!canSubmit || submitting}
               style={{
                 padding: '14px 28px',
                 borderRadius: '6px',
@@ -309,12 +396,12 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: '15px',
                 fontWeight: 500,
-                cursor: choice && !submitting ? 'pointer' : 'not-allowed',
-                opacity: !choice || submitting || (needsContext && context.trim().length < 2) ? 0.45 : 1,
+                cursor: canSubmit && !submitting ? 'pointer' : 'not-allowed',
+                opacity: !canSubmit || submitting ? 0.45 : 1,
                 transition: 'opacity 0.15s ease',
               }}
             >
-              {submitting ? 'Saving…' : 'Share my response'}
+              {submitting ? 'Saving…' : 'Share my answer'}
             </button>
           </div>
         )}

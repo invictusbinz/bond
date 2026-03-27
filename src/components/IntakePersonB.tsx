@@ -105,7 +105,8 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
         // Clear saved state — intake is done, next session starts fresh
         const key = storageKey(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
-        setPhase('complete')
+        // Let the closing message breathe in the conversation view before transitioning
+        setTimeout(() => setPhase('complete'), 3500)
       }
     } catch (err) {
       console.error('Force close error:', err)
@@ -149,7 +150,8 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
         // Intake saved to Supabase + session status advanced by the API route.
         const key = storageKey(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
-        setPhase('complete')
+        // Let the closing message breathe in the conversation view before transitioning
+        setTimeout(() => setPhase('complete'), 3500)
       }
     } catch (err) {
       console.error('Intake B error:', err)
@@ -185,7 +187,6 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
 
   // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
   if (phase === 'complete') {
-    const closingText = messages[messages.length - 1]?.text ?? ''
     return (
       <div
         style={{
@@ -197,46 +198,50 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
           padding: '24px',
         }}
       >
-        <style>{FONTS}</style>
-        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
-          <div
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+
+          {/* Eyebrow */}
+          <p
             style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              backgroundColor: C.greenSoft,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              fontSize: '22px',
-              color: C.green,
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '11px',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: C.accent,
+              marginBottom: '20px',
             }}
           >
-            ✓
-          </div>
-          <h2
+            Your side is in
+          </p>
+
+          {/* Heading */}
+          <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '26px',
+              fontSize: '30px',
               fontWeight: 400,
               color: C.ink,
-              marginBottom: '16px',
               lineHeight: 1.3,
+              marginBottom: '16px',
             }}
           >
-            Your side is in.
-          </h2>
+            Bond has heard you both.
+          </h1>
+
+          {/* Sub-text */}
           <p
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '15px',
-              color: '#4a4540',
+              fontSize: '16px',
+              color: C.muted,
               lineHeight: 1.75,
+              maxWidth: '380px',
             }}
           >
-            {closingText}
+            Bond is now putting together a shared picture — what you each seem to need, and where there might be common ground. You&apos;ll both see it at the same time.
           </p>
+
         </div>
       </div>
     )

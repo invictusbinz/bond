@@ -113,6 +113,10 @@ export default function SessionPage() {
   const [partnerSummary, setPartnerSummary] = useState('')
   const [personBFlow, setPersonBFlow] = useState<'checkin' | 'orientation' | 'intake' | 'not_ready'>('checkin')
   const [synthesis, setSynthesis] = useState<SynthesisContent | null>(null)
+  // 1 = original synthesis, 2 = revised synthesis
+  // Used to distinguish the checkpoint path (v1) from the revised-synthesis path (v2)
+  // when the status is a_responded_checkpoint or b_responded_checkpoint.
+  const [synthesisVersion, setSynthesisVersion] = useState<number>(1)
 
   // Track whether synthesis has been triggered this session to avoid double-firing
   const synthesisTriggeredRef = useRef(false)
@@ -129,7 +133,10 @@ export default function SessionPage() {
     const res = await fetch(`/api/synthesis?sessionId=${sessionId}`)
     if (res.ok) {
       const data = await res.json()
-      if (data.content) setSynthesis(data.content)
+      if (data.content) {
+        setSynthesis(data.content)
+        setSynthesisVersion(data.version ?? 1)
+      }
     }
   }
 
@@ -191,10 +198,11 @@ export default function SessionPage() {
         return
       }
 
-      // If synthesis is already ready, fetch the content
+      // If synthesis is already ready (or in a post-synthesis state), fetch the content.
+      // Includes checkpoint responded states since v2 path shows revised synthesis there.
       if (['synthesis_ready', 'a_responded_synthesis', 'b_responded_synthesis',
            'both_responded_synthesis', 'synthesis_revising', 'synthesis_revised',
-           'checkpoint_ready'].includes(data.status)) {
+           'checkpoint_ready', 'a_responded_checkpoint', 'b_responded_checkpoint'].includes(data.status)) {
         fetchSynthesis()
       }
 
@@ -241,9 +249,11 @@ export default function SessionPage() {
       const updated: SessionData = await res.json()
       if (updated.status !== session.status) {
         setSession(updated)
-        // Fetch synthesis content when it first becomes ready, or when revised
+        // Fetch synthesis content when it first becomes ready, or when revised.
+        // Also fetch in checkpoint-responded states for v2 path.
         if (['synthesis_ready', 'synthesis_revised', 'a_responded_synthesis',
-             'b_responded_synthesis', 'checkpoint_ready'].includes(updated.status)) {
+             'b_responded_synthesis', 'checkpoint_ready',
+             'a_responded_checkpoint', 'b_responded_checkpoint'].includes(updated.status)) {
           fetchSynthesis()
         }
       }
@@ -355,7 +365,7 @@ export default function SessionPage() {
       return <WaitingScreen variant="synthesis_generating" />
     }
 
-    // Revised synthesis ready — show it (A reads and responds again)
+    // Revised synthesis ready — A reads it and answers the inline checkpoint question
     if (status === 'synthesis_revised' && synthesis) {
       return (
         <SynthesisView
@@ -363,12 +373,13 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="a"
-          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_synthesis' } : s)}
+          isRevised={true}
+          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
         />
       )
     }
 
-    // Checkpoint
+    // Checkpoint (original "both said yes" path from checkpoint_ready)
     if (status === 'checkpoint_ready') {
       return (
         <CheckpointView
@@ -384,8 +395,22 @@ export default function SessionPage() {
       return <WaitingScreen variant="partner_checkpoint" />
     }
 
-    // B responded checkpoint first — A still needs to answer
+    // B responded checkpoint first — A still needs to answer.
+    // v2 path: show revised synthesis with inline checkpoint question.
+    // v1 path: show standalone CheckpointView.
     if (status === 'b_responded_checkpoint') {
+      if (synthesisVersion === 2 && synthesis) {
+        return (
+          <SynthesisView
+            synthesis={synthesis}
+            sessionId={sessionId}
+            token={myToken}
+            myRole="a"
+            isRevised={true}
+            onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
+          />
+        )
+      }
       return (
         <CheckpointView
           sessionId={sessionId}
@@ -529,7 +554,7 @@ export default function SessionPage() {
       return <WaitingScreen variant="synthesis_generating" />
     }
 
-    // Revised synthesis — B reads and responds again
+    // Revised synthesis — B reads it and answers the inline checkpoint question
     if (status === 'synthesis_revised' && synthesis) {
       return (
         <SynthesisView
@@ -537,12 +562,13 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="b"
-          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_synthesis' } : s)}
+          isRevised={true}
+          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
         />
       )
     }
 
-    // Checkpoint
+    // Checkpoint (original "both said yes" path from checkpoint_ready)
     if (status === 'checkpoint_ready') {
       return (
         <CheckpointView
@@ -558,8 +584,22 @@ export default function SessionPage() {
       return <WaitingScreen variant="partner_checkpoint" />
     }
 
-    // A responded checkpoint first — B still needs to answer
+    // A responded checkpoint first — B still needs to answer.
+    // v2 path: show revised synthesis with inline checkpoint question.
+    // v1 path: show standalone CheckpointView.
     if (status === 'a_responded_checkpoint') {
+      if (synthesisVersion === 2 && synthesis) {
+        return (
+          <SynthesisView
+            synthesis={synthesis}
+            sessionId={sessionId}
+            token={myToken}
+            myRole="b"
+            isRevised={true}
+            onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
+          />
+        )
+      }
       return (
         <CheckpointView
           sessionId={sessionId}
