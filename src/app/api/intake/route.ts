@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { generateIntakeSummary } from '@/lib/generateIntakeSummary'
 
 const CLOSING_SIGNAL = "Thank you for sharing this. I have enough to work with."
 
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest) {
         .eq('id', sessionId)
         .eq('person_a_token', token)
 
+      await generateIntakeSummary(messages as Message[], sessionId, 'a', supabase)
+
       return NextResponse.json({ text: closingText, isComplete: true })
     }
 
@@ -74,6 +77,8 @@ export async function POST(request: NextRequest) {
       await supabase.from('sessions')
         .update({ status: 'awaiting_b' })
         .eq('id', sessionId).eq('person_a_token', token)
+
+      await generateIntakeSummary(messages as Message[], sessionId, 'a', supabase)
 
       return NextResponse.json({ text: closingText, isComplete: true })
     }
@@ -176,6 +181,8 @@ ${closingInstruction}`
         .update({ status: 'awaiting_b' })
         .eq('id', sessionId)
         .eq('person_a_token', token)
+
+      await generateIntakeSummary(messages as Message[], sessionId, 'a', supabase)
     }
 
     return NextResponse.json({ text: aiText, isComplete })

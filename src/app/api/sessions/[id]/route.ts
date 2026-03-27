@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     const { data, error } = await supabase
       .from('sessions')
-      .select('id, mode, status, person_a_token, person_b_token, join_code, created_at')
+      .select('id, mode, status, person_a_token, person_b_token, join_code, created_at, a_intake_summary, b_intake_summary')
       .eq('id', id)
       .single()
 

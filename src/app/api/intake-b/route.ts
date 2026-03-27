@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { generateIntakeSummary } from '@/lib/generateIntakeSummary'
 
 // The closing signal must match exactly — the UI checks for this string
 // to know when Person B's intake is complete and transition to the complete phase.
@@ -40,6 +41,8 @@ export async function POST(request: NextRequest) {
         .eq('id', sessionId)
         .eq('person_b_token', token)
 
+      await generateIntakeSummary(messages as Message[], sessionId, 'b', supabase)
+
       return NextResponse.json({ text: closingText, isComplete: true })
     }
 
@@ -66,6 +69,8 @@ export async function POST(request: NextRequest) {
       await supabase.from('sessions')
         .update({ status: 'synthesis_generating' })
         .eq('id', sessionId).eq('person_b_token', token)
+
+      await generateIntakeSummary(messages as Message[], sessionId, 'b', supabase)
 
       return NextResponse.json({ text: closingText, isComplete: true })
     }
@@ -178,6 +183,8 @@ ${closingInstruction}`
         .update({ status: 'synthesis_generating' })
         .eq('id', sessionId)
         .eq('person_b_token', token)
+
+      await generateIntakeSummary(messages as Message[], sessionId, 'b', supabase)
     }
 
     return NextResponse.json({ text: aiText, isComplete })

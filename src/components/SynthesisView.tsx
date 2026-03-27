@@ -35,6 +35,9 @@ type Props = {
   // show the checkpoint question inline ("Do you want to work through this together?").
   // Submits as step: 'checkpoint' rather than 'synthesis_accuracy'.
   isRevised?: boolean
+  // Short first-person summary of what this person shared in their intake.
+  // Shown in a collapsible strip so they can recall what they said while reading.
+  mySummary?: string | null
 }
 
 type AccuracyChoice = 'yes' | 'partially' | 'no'
@@ -65,7 +68,7 @@ const LEGACY_SECTIONS = [
   { key: 'friction' as const, label: 'Where the friction is living' },
 ]
 
-export default function SynthesisView({ synthesis, sessionId, token, myRole, onResponded, isRevised = false }: Props) {
+export default function SynthesisView({ synthesis, sessionId, token, myRole, onResponded, isRevised = false, mySummary }: Props) {
   const m = useIsMobile()
   // Accuracy flow (original synthesis)
   const [accuracyChoice, setAccuracyChoice] = useState<AccuracyChoice | null>(null)
@@ -76,6 +79,9 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+
+  // Context strip — "what you shared"
+  const [summaryOpen, setSummaryOpen] = useState(false)
 
   async function handleSubmit() {
     const hasChoice = isRevised ? !!checkpointChoice : !!accuracyChoice
@@ -173,6 +179,71 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
             This is your side of the picture — not a verdict, not a score. Read it slowly.
           </p>
         </div>
+
+        {/* ── Context strip — "what you shared" ── */}
+        {mySummary && (
+          <div
+            style={{
+              marginBottom: m ? '24px' : '36px',
+              borderRadius: '8px',
+              border: `1px solid ${C.rule}`,
+              backgroundColor: summaryOpen ? C.accentSoft : C.white,
+              overflow: 'hidden',
+              transition: 'background-color 0.2s',
+            }}
+          >
+            {/* Toggle row */}
+            <button
+              onClick={() => setSummaryOpen(o => !o)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: m ? '12px 16px' : '14px 20px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '10px',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                color: summaryOpen ? C.accent : C.dimmed,
+              }}>
+                What you shared
+              </span>
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '11px',
+                color: summaryOpen ? C.accent : C.dimmed,
+                display: 'inline-block',
+                transform: summaryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s',
+              }}>
+                ↓
+              </span>
+            </button>
+
+            {/* Expanded summary */}
+            {summaryOpen && (
+              <div style={{ padding: m ? '0 16px 16px' : '0 20px 18px' }}>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  color: C.ink,
+                  lineHeight: 1.75,
+                  margin: 0,
+                  fontStyle: 'italic',
+                }}>
+                  {mySummary}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Synthesis content — personalized view or legacy 4-section fallback */}
         {(synthesis.a_view || synthesis.b_view) ? (

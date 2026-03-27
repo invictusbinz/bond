@@ -42,6 +42,8 @@ type SessionData = {
   person_a_token: string
   person_b_token: string
   join_code: string
+  a_intake_summary?: string | null
+  b_intake_summary?: string | null
 }
 
 type SynthesisContent = {
@@ -295,6 +297,12 @@ export default function SessionPage() {
     ? `${window.location.origin}/session/${sessionId}?join=${session.person_b_token}`
     : ''
 
+  // Summary of what this person shared in their own intake — shown as a
+  // collapsible strip in SynthesisView so they can recall what they said.
+  const mySummary = myRole === 'a'
+    ? (session.a_intake_summary ?? null)
+    : (session.b_intake_summary ?? null)
+
   // ── Has this person responded to synthesis? ────────────────────────────────
   // Used to decide: show synthesis OR show "waiting for partner"
   const iHaveRespondedSynthesis =
@@ -339,6 +347,7 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="a"
+          mySummary={mySummary}
           onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_synthesis' } : s)}
         />
       )
@@ -357,6 +366,7 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="a"
+          mySummary={mySummary}
           onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_synthesis' } : s)}
         />
       )
@@ -381,6 +391,7 @@ export default function SessionPage() {
           token={myToken}
           myRole="a"
           isRevised={true}
+          mySummary={mySummary}
           onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
         />
       )
@@ -414,6 +425,7 @@ export default function SessionPage() {
             token={myToken}
             myRole="a"
             isRevised={true}
+            mySummary={mySummary}
             onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
           />
         )
@@ -548,6 +560,7 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="b"
+          mySummary={mySummary}
           onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_synthesis' } : s)}
         />
       )
@@ -566,6 +579,7 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="b"
+          mySummary={mySummary}
           onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_synthesis' } : s)}
         />
       )
@@ -589,6 +603,7 @@ export default function SessionPage() {
           token={myToken}
           myRole="b"
           isRevised={true}
+          mySummary={mySummary}
           onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
         />
       )
@@ -622,6 +637,7 @@ export default function SessionPage() {
             token={myToken}
             myRole="b"
             isRevised={true}
+            mySummary={mySummary}
             onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
           />
         )
