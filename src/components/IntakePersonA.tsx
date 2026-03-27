@@ -119,7 +119,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       }
     } catch (err) {
       console.error('Force close error:', err)
-      setError('Something went wrong. Please try again.')
+      setError('Bond had trouble wrapping up your intake. Give it a moment and try again.')
     } finally {
       setLoading(false)
     }
@@ -166,7 +166,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       }
     } catch (err) {
       console.error('Intake error:', err)
-      setError('Something went wrong. Please try again.')
+      setError('Bond didn\u2019t receive that. Your message is restored below \u2014 try sending it again.')
       // Restore state so user can retry
       setMessages(messages)
       setUserMessageCount(userMessageCount)

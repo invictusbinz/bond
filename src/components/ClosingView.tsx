@@ -258,7 +258,7 @@ export default function ClosingView({ sessionId, token }: Props) {
                   marginBottom: '16px',
                 }}
               >
-                Something went wrong loading your reflection.
+                Bond had trouble loading your reflection. Use the button below to try again.
               </p>
               <button
                 onClick={() => { setDebriefPhase('idle') }}

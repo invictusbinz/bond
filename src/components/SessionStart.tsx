@@ -5,7 +5,10 @@
 // Person A lands here, picks a mode, creates a session in Supabase,
 // and is redirected to /session/[id] where their intake begins.
 //
-// If someone arrives with no session context, this is what they see.
+// Person B can also enter a 6-character join code here to join a session
+// without needing the full invite URL. The code lookup calls /api/join
+// which returns the session ID and Person B's token, then redirects to
+// /session/[id]?join=[token] — the same flow as clicking the invite link.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -30,14 +33,21 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 
 export default function SessionStart() {
   const router = useRouter()
+
+  // ── Person A: start a session ──────────────────────────────────────────────
   const [selectedMode, setSelectedMode] = useState<Mode | null>(null)
   const [creating, setCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [startError, setStartError] = useState<string | null>(null)
+
+  // ── Person B: join via code ────────────────────────────────────────────────
+  const [joinCode, setJoinCode] = useState('')
+  const [joining, setJoining] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
 
   const handleStart = async () => {
     if (!selectedMode || creating) return
     setCreating(true)
-    setError(null)
+    setStartError(null)
 
     try {
       const res = await fetch('/api/sessions', {
@@ -57,9 +67,39 @@ export default function SessionStart() {
       router.push(`/session/${data.sessionId}`)
     } catch (err) {
       console.error('Session creation error:', err)
-      setError('Something went wrong creating the session. Please try again.')
+      setStartError('Bond had trouble starting the session. Give it a moment and try again.')
       setCreating(false)
     }
+  }
+
+  const handleJoin = async () => {
+    const code = joinCode.trim().toUpperCase()
+    if (!code || joining) return
+    setJoining(true)
+    setJoinError(null)
+
+    try {
+      const res = await fetch(`/api/join?code=${encodeURIComponent(code)}`)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setJoinError(data.error || 'Bond couldn\u2019t find that session. Double-check the code and try again.')
+        setJoining(false)
+        return
+      }
+
+      // Redirect to session page — it will save the token from the URL param
+      // and route B into the availability check-in flow automatically
+      router.push(`/session/${data.sessionId}?join=${data.personBToken}`)
+    } catch (err) {
+      console.error('Join code error:', err)
+      setJoinError('Bond had trouble looking up that code. Give it a moment and try again.')
+      setJoining(false)
+    }
+  }
+
+  const handleJoinKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleJoin()
   }
 
   return (
@@ -104,7 +144,7 @@ export default function SessionStart() {
           </p>
         </div>
 
-        {/* Session card */}
+        {/* ── Start a Session card ── */}
         <div
           style={{
             backgroundColor: C.white,
@@ -194,7 +234,7 @@ export default function SessionStart() {
             ))}
           </div>
 
-          {error && (
+          {startError && (
             <p
               style={{
                 fontFamily: "'DM Sans', sans-serif",
@@ -204,7 +244,7 @@ export default function SessionStart() {
                 lineHeight: 1.6,
               }}
             >
-              {error}
+              {startError}
             </p>
           )}
 
@@ -235,19 +275,114 @@ export default function SessionStart() {
           </button>
         </div>
 
-        {/* Joining hint — for Person B who was sent the wrong link */}
-        <p
+        {/* ── Join a Session card ── */}
+        <div
           style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '12px',
-            color: C.dimmed,
-            textAlign: 'center',
-            marginTop: '20px',
-            lineHeight: 1.6,
+            backgroundColor: C.white,
+            border: `1px solid ${C.rule}`,
+            borderRadius: '10px',
+            padding: '28px 36px',
+            marginTop: '16px',
           }}
         >
-          Joining a session? Use the invite link your partner sent you.
-        </p>
+          <div
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '10px',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: C.muted,
+              marginBottom: '14px',
+            }}
+          >
+            Join a Session
+          </div>
+
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: C.muted,
+              lineHeight: 1.7,
+              marginBottom: '16px',
+            }}
+          >
+            Your partner started a session and gave you a 6-character code.
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => {
+                  // Auto-uppercase, max 6 characters, letters and digits only
+                  const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+                  setJoinCode(val)
+                  if (joinError) setJoinError(null)
+                }}
+                onKeyDown={handleJoinKeyDown}
+                placeholder="e.g. ABX4K2"
+                maxLength={6}
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: '8px',
+                  border: joinError ? `1.5px solid ${C.accent}` : `1px solid ${C.rule}`,
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '15px',
+                  letterSpacing: '0.12em',
+                  color: C.ink,
+                  backgroundColor: C.paper,
+                  outline: 'none',
+                  transition: 'border-color 0.15s',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = C.accent
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = joinError ? C.accent : C.rule
+                }}
+              />
+            </div>
+
+            <button
+              onClick={handleJoin}
+              disabled={joinCode.trim().length < 6 || joining}
+              style={{
+                padding: '11px 18px',
+                borderRadius: '8px',
+                backgroundColor: joinCode.trim().length === 6 && !joining ? C.ink : C.rule,
+                color: joinCode.trim().length === 6 && !joining ? C.white : C.disabled,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                fontWeight: 500,
+                border: 'none',
+                cursor: joinCode.trim().length === 6 && !joining ? 'pointer' : 'not-allowed',
+                whiteSpace: 'nowrap',
+                transition: 'background-color 0.15s',
+                flexShrink: 0,
+              }}
+            >
+              {joining ? 'Joining…' : 'Join'}
+            </button>
+          </div>
+
+          {joinError && (
+            <p
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '13px',
+                color: C.accent,
+                marginTop: '10px',
+                lineHeight: 1.6,
+              }}
+            >
+              {joinError}
+            </p>
+          )}
+        </div>
 
       </div>
     </div>

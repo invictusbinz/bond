@@ -65,7 +65,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
       setTimeout(() => onResponded(), 800)
     } catch (err) {
       console.error(err)
-      setError('Something went wrong. Please try again.')
+      setError('Bond had trouble saving your response. Give it a moment and try again.')
     } finally {
       setSubmitting(false)
     }
