@@ -149,7 +149,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
             textTransform: 'uppercase',
             marginBottom: '14px',
           }}>
-            Bond's read
+            Bond's read on you
           </p>
           <h1 style={{
             fontFamily: "'Playfair Display', serif",
@@ -159,7 +159,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
             lineHeight: 1.3,
             margin: 0,
           }}>
-            Here's what Bond sees.
+            Here's what Bond sees in you.
           </h1>
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -168,7 +168,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
             marginTop: '10px',
             lineHeight: 1.7,
           }}>
-            This isn't a verdict — it's a mirror. Read it slowly.
+            This is your side of the picture — not a verdict, not a score. Read it slowly.
           </p>
         </div>
 
