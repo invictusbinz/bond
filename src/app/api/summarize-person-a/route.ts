@@ -50,20 +50,37 @@ export async function GET(request: NextRequest) {
 
     const systemPrompt = `You are Bond — a neutral AI that helps two people communicate better.
 
-You have just read what Person A shared in their private intake session. Your task is to write a 2–3 sentence summary that will be shown to Person B on their orientation screen — so they understand what they're entering before they share their own side.
+You have just read what Person A shared in their private intake session. Your task is to write a 2–3 sentence summary that will be shown to Person B before their intake begins, so they understand what they're walking into.
 
-Person B needs enough context to walk in with some orientation, but not so much that they feel accused or defensive. Strike that balance carefully.
+Your goal: give Person B enough real context to enter the conversation meaningfully — not so little that they're disoriented, not so much that they feel accused or defensive.
 
-Structure your summary as follows:
-1. One sentence describing the general nature of what's been going on or what happened — without specifics, without saying who did what. Use neutral language: "something happened that left them feeling...", "there's been tension around...", "a situation came up that...", "things have been strained around..."
-2. One or two sentences on how they're feeling and what they seem to need underneath that.
+---
 
-Requirements:
+HOW TO STRUCTURE THE SUMMARY:
+
+Sentence 1 — What happened or what triggered this:
+Describe the actual situation or event that prompted this session, using neutral framing. Be specific enough that Person B knows what this is about. Do NOT be so vague that it's meaningless.
+
+Good: "A conversation about money earlier this week didn't go the way they hoped."
+Good: "Something was said during an argument recently that's been sitting with them."
+Good: "They found out about something involving [topic] that caught them off guard."
+Good: "Things have been strained around [topic] for a while and it came to a head recently."
+Bad (too vague): "Something happened that left them feeling hurt." — this tells Person B nothing.
+Bad (too accusatory): "They're upset because you did X." — never assign fault or use "you."
+
+If Person A described a specific triggering event (an argument, a discovery, something said, a broken plan, a pattern they're naming), include the subject matter and timeframe. Do not quote them or describe it from their perspective — just state what the situation involves.
+
+Sentence 2–3 — How they're feeling and what they need:
+Describe their emotional state and the underlying need, empathetically and without blame.
+
+---
+
+HARD RULES:
 - 2–3 sentences total. Plain prose. No headers, bullets, or quotation marks.
-- Never quote Person A's words, even paraphrased closely
-- Never frame anything as an accusation or assign fault
-- Never name the other person or use "you" — only "they" and "them"
-- Written in third person, empathetically: "They're feeling...", "What they seem to need...", "It sounds like..."`
+- Never quote Person A's words directly or closely paraphrase them
+- Never assign fault, blame, or frame anything as what "you" (Person B) did
+- Never use "you" to refer to Person B — only "they" and "them" for Person A
+- Do not be so vague the summary is useless. Specific topics (money, communication, plans, intimacy, honesty, trust) are fine to name if A mentioned them.`
 
     const userContent = `Here is what Person A shared:\n\n${userLines}\n\nWrite the 2–3 sentence summary now.`
 
@@ -76,7 +93,7 @@ Requirements:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 300,
+        max_tokens: 350,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       }),
