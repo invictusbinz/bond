@@ -307,7 +307,7 @@ export default function SessionPage() {
 
     // A is doing their intake
     if (status === 'a_intake') {
-      return <IntakePersonA sessionId={sessionId} token={myToken} mode={session.mode} inviteUrl={inviteUrl} />
+      return <IntakePersonA sessionId={sessionId} token={myToken} mode={session.mode} inviteUrl={inviteUrl} joinCode={session.join_code} />
     }
 
     // A waiting for B to join

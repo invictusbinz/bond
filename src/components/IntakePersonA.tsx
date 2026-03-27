@@ -40,11 +40,13 @@ type Props = {
   // The correct invite URL for Person B — built by session page with person_b_token.
   // If not provided, the complete screen won't show the link.
   inviteUrl?: string
+  // The 6-character join code — shown as an alternative to the full URL.
+  joinCode?: string
 }
 
 const storageKeyA = (id?: string) => id ? `bond_intake_a_${id}` : null
 
-export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp }: Props = {}) {
+export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp, joinCode }: Props = {}) {
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
     const key = storageKeyA(sessionId)
@@ -337,11 +339,8 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
 
   // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
   if (phase === 'complete') {
-    // The invite URL for Person B — built by session page with person_b_token.
-    const inviteUrl = inviteUrlProp ?? null
-
     return (
-      <CompleteView inviteUrl={inviteUrl} />
+      <CompleteView inviteUrl={inviteUrlProp ?? null} joinCode={joinCode ?? null} />
     )
   }
 
@@ -643,7 +642,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
 
 // ─── Sub-component: complete screen ──────────────────────────────────────────
 
-function CompleteView({ inviteUrl }: { inviteUrl: string | null }) {
+function CompleteView({ inviteUrl, joinCode }: { inviteUrl: string | null; joinCode: string | null }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -669,19 +668,28 @@ function CompleteView({ inviteUrl }: { inviteUrl: string | null }) {
 
       <div style={{ width: '100%', maxWidth: '440px' }}>
 
-        {/* Eyebrow */}
-        <p
+        {/* Pulsing dot — matches WaitingScreen awaiting_b */}
+        <div
           style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '11px',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: C.accent,
-            marginBottom: '20px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: C.greenSoft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '28px',
           }}
         >
-          Your side is in
-        </p>
+          <div
+            style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              backgroundColor: C.green,
+            }}
+          />
+        </div>
 
         {/* Heading */}
         <h1
@@ -694,26 +702,35 @@ function CompleteView({ inviteUrl }: { inviteUrl: string | null }) {
             marginBottom: '16px',
           }}
         >
-          Bond has what it needs from you.
+          Your side is in.
         </h1>
 
         {/* Sub-text */}
         <p
           style={{
             fontFamily: "'DM Sans', sans-serif",
-            fontSize: '16px',
+            fontSize: '15px',
             color: C.muted,
             lineHeight: 1.75,
-            marginBottom: '40px',
+            marginBottom: '36px',
             maxWidth: '380px',
           }}
         >
-          When they share their side, Bond will put the full picture together — and you&apos;ll both see it at the same time.
+          Now send them the link. When they&apos;re ready to share their side, Bond will bring it all together.
         </p>
 
-        {/* Invite link section */}
+        {/* Invite link card */}
         {inviteUrl && (
-          <div>
+          <div
+            style={{
+              backgroundColor: C.white,
+              border: `1px solid ${C.rule}`,
+              borderRadius: '10px',
+              padding: '20px 24px',
+              marginBottom: '12px',
+            }}
+          >
+            {/* Label */}
             <p
               style={{
                 fontFamily: "'DM Mono', monospace",
@@ -724,49 +741,85 @@ function CompleteView({ inviteUrl }: { inviteUrl: string | null }) {
                 marginBottom: '10px',
               }}
             >
-              Send them this link
+              Invite Link
             </p>
 
-            {/* URL display box */}
+            {/* URL */}
             <div
               style={{
-                backgroundColor: C.white,
-                border: `1px solid ${C.rule}`,
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginBottom: '12px',
                 fontFamily: "'DM Mono', monospace",
                 fontSize: '12px',
                 color: C.muted,
                 wordBreak: 'break-all',
-                lineHeight: 1.5,
+                lineHeight: 1.55,
+                marginBottom: joinCode ? '12px' : '0',
               }}
             >
               {inviteUrl}
             </div>
 
-            {/* Copy button with proper copied feedback */}
-            <button
-              onClick={handleCopy}
-              style={{
-                width: '100%',
-                padding: '13px 16px',
-                borderRadius: '8px',
-                backgroundColor: copied ? C.green : C.accent,
-                color: C.white,
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '14px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                letterSpacing: '0.01em',
-              }}
-            >
-              {copied ? 'Copied ✓' : 'Copy invite link'}
-            </button>
+            {/* Join code — alternative to the URL */}
+            {joinCode && (
+              <p
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '13px',
+                  color: C.muted,
+                  margin: 0,
+                }}
+              >
+                Or share the join code:{' '}
+                <span
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: C.ink,
+                    letterSpacing: '0.08em',
+                  }}
+                >
+                  {joinCode}
+                </span>
+              </p>
+            )}
           </div>
         )}
+
+        {/* Copy button */}
+        {inviteUrl && (
+          <button
+            onClick={handleCopy}
+            style={{
+              width: '100%',
+              padding: '13px 16px',
+              borderRadius: '8px',
+              backgroundColor: copied ? C.green : C.white,
+              color: copied ? C.white : C.ink,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '14px',
+              fontWeight: 500,
+              border: `1px solid ${copied ? C.green : C.rule}`,
+              cursor: 'pointer',
+              transition: 'background-color 0.2s, color 0.2s, border-color 0.2s',
+              letterSpacing: '0.01em',
+              marginBottom: '16px',
+            }}
+          >
+            {copied ? 'Copied ✓' : 'Copy invite link'}
+          </button>
+        )}
+
+        {/* Close tab note */}
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '13px',
+            color: C.dimmed,
+            textAlign: 'center',
+          }}
+        >
+          You can close this tab and come back anytime.
+        </p>
 
       </div>
     </div>
