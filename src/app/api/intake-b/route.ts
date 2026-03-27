@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 // The closing signal must match exactly — the UI checks for this string
 // to know when Person B's intake is complete and transition to the complete phase.
@@ -9,7 +10,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, userMessageCount, partnerSummary } = await request.json()
+    const { messages, userMessageCount, partnerSummary, sessionId, token } = await request.json()
 
     const shouldClose = userMessageCount >= 3
 
@@ -77,6 +78,28 @@ ${closingInstruction}`
     const result = await apiResponse.json()
     const aiText: string = result.content?.[0]?.text ?? ''
     const isComplete = aiText.includes(CLOSING_SIGNAL)
+
+    // When intake is complete, save to Supabase and advance session status
+    if (isComplete && sessionId && token) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      const allMessages = [...(messages as Message[]), { role: 'ai', text: aiText }]
+
+      await supabase.from('intake_responses').upsert(
+        { session_id: sessionId, person: 'b', messages: allMessages, completed_at: new Date().toISOString() },
+        { onConflict: 'session_id,person' }
+      )
+
+      // Advance session status to both_complete
+      await supabase
+        .from('sessions')
+        .update({ status: 'both_complete' })
+        .eq('id', sessionId)
+        .eq('person_b_token', token)
+    }
 
     return NextResponse.json({ text: aiText, isComplete })
   } catch (error) {

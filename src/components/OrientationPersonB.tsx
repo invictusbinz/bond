@@ -27,19 +27,23 @@ const C = {
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 type Props = {
+  sessionId?: string  // used to fetch the right Person A summary from Supabase
   // Called when Person B taps "I'm ready" — passes the summary text along
   // so the intake API can use it as background context.
   onReady: (partnerSummary: string) => void
 }
 
-export default function OrientationPersonB({ onReady }: Props) {
+export default function OrientationPersonB({ sessionId, onReady }: Props) {
   const [summary, setSummary] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchSummary() {
       try {
-        const res = await fetch('/api/summarize-person-a')
+        const url = sessionId
+          ? `/api/summarize-person-a?sessionId=${sessionId}`
+          : '/api/summarize-person-a'
+        const res = await fetch(url)
         if (!res.ok) throw new Error('Fetch failed')
         const data = await res.json()
         setSummary(data.summary)

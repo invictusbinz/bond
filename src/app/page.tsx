@@ -1,40 +1,13 @@
-'use client'
-
-// Person B's full journey lives here:
+// Bond homepage.
 //
-//   availability  →  Check-in: how are they feeling right now?
-//   orientation   →  Intention-setting + neutral summary of what Person A shared
-//   intake        →  Person B shares their own side (AI-guided, private)
+// Person A lands here → picks a mode → session is created → redirected to /session/[id]
+// Person B lands here via invite URL → redirected to /session/[id]?join=[token]
 //
-// Person A's journey is at /intake.
+// The homepage itself is just the session creation screen.
+// All session routing logic lives in /session/[id].
 
-import { useState } from 'react'
-import AvailabilityCheckIn from '@/components/AvailabilityCheckIn'
-import OrientationPersonB from '@/components/OrientationPersonB'
-import IntakePersonB from '@/components/IntakePersonB'
-
-type Flow = 'availability' | 'orientation' | 'intake'
+import SessionStart from '@/components/SessionStart'
 
 export default function Home() {
-  const [flow, setFlow] = useState<Flow>('availability')
-  // The neutral summary of Person A's side, generated during orientation.
-  // Passed to IntakePersonB so the AI can use it as background context.
-  const [partnerSummary, setPartnerSummary] = useState('')
-
-  if (flow === 'intake') {
-    return <IntakePersonB partnerSummary={partnerSummary} />
-  }
-
-  if (flow === 'orientation') {
-    return (
-      <OrientationPersonB
-        onReady={(summary) => {
-          setPartnerSummary(summary)
-          setFlow('intake')
-        }}
-      />
-    )
-  }
-
-  return <AvailabilityCheckIn onReady={() => setFlow('orientation')} />
+  return <SessionStart />
 }

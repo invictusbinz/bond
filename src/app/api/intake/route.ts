@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const CLOSING_SIGNAL = "Thank you for sharing this. I have enough to work with."
 
@@ -6,7 +7,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, mode, userMessageCount } = await request.json()
+    const { messages, mode, userMessageCount, sessionId, token } = await request.json()
 
     const openingQuestion =
       mode === 'heard'
@@ -75,6 +76,29 @@ ${closingInstruction}`
     const result = await apiResponse.json()
     const aiText: string = result.content?.[0]?.text ?? ''
     const isComplete = aiText.includes(CLOSING_SIGNAL)
+
+    // When intake is complete, save to Supabase and advance session status
+    if (isComplete && sessionId && token) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      const allMessages = [...(messages as Message[]), { role: 'ai', text: aiText }]
+
+      // Save intake (upsert in case of retry)
+      await supabase.from('intake_responses').upsert(
+        { session_id: sessionId, person: 'a', messages: allMessages, completed_at: new Date().toISOString() },
+        { onConflict: 'session_id,person' }
+      )
+
+      // Advance session status to awaiting_b
+      await supabase
+        .from('sessions')
+        .update({ status: 'awaiting_b' })
+        .eq('id', sessionId)
+        .eq('person_a_token', token)
+    }
 
     return NextResponse.json({ text: aiText, isComplete })
   } catch (error) {

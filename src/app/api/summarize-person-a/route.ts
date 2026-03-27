@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // Used when Person A's intake isn't in Supabase yet (early prototype / first load).
@@ -6,22 +6,30 @@ import { createClient } from '@supabase/supabase-js'
 const FALLBACK_SUMMARY =
   "They reached out to share something that's been weighing on them about your relationship. I heard their side privately — the fuller picture will come together once I hear from you too."
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Supabase client — server-side, uses public anon key (read-only for this table)
+    const { searchParams } = new URL(request.url)
+    const sessionId = searchParams.get('sessionId')
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Fetch Person A's most recent completed intake
-    const { data, error } = await supabase
+    // Fetch Person A's intake for this specific session
+    let query = supabase
       .from('intake_responses')
       .select('messages')
       .eq('person', 'a')
-      .order('completed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+
+    if (sessionId) {
+      query = query.eq('session_id', sessionId)
+    } else {
+      // Fallback for prototype testing without a session ID
+      query = query.order('completed_at', { ascending: false }).limit(1)
+    }
+
+    const { data, error } = await query.maybeSingle()
 
     if (error || !data?.messages) {
       console.log('No Person A intake in Supabase — using fallback summary:', error?.message)

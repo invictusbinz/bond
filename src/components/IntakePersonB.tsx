@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,13 +35,15 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type Props = {
+  sessionId?: string  // links this intake to a specific session in Supabase
+  token?: string      // Person B's token — used to verify and advance session status
   // The neutral AI-generated summary of Person A's side, produced during the
   // orientation screen. Passed to the intake API as background context only —
   // the AI uses it to ask better follow-up questions without revealing it to Person B.
   partnerSummary?: string
 }
 
-export default function IntakePersonB({ partnerSummary = '' }: Props) {
+export default function IntakePersonB({ sessionId, token, partnerSummary = '' }: Props) {
   const [phase, setPhase] = useState<Phase>('intake')
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: OPENING_QUESTION },
@@ -83,7 +84,7 @@ export default function IntakePersonB({ partnerSummary = '' }: Props) {
       const res = await fetch('/api/intake-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary }),
+        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary, sessionId, token }),
       })
 
       if (!res.ok) throw new Error('API error')
@@ -96,13 +97,7 @@ export default function IntakePersonB({ partnerSummary = '' }: Props) {
       setMessages(finalMessages)
 
       if (data.isComplete) {
-        // Save Person B's intake to Supabase — non-blocking, won't crash if table doesn't exist yet
-        const { error: saveError } = await supabase.from('intake_responses').insert({
-          person: 'b',
-          messages: finalMessages,
-          completed_at: new Date().toISOString(),
-        })
-        if (saveError) console.log('Supabase save (non-blocking):', saveError)
+        // Intake saved to Supabase + session status advanced by the API route.
         setPhase('complete')
       }
     } catch (err) {

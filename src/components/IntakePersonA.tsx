@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 
 type Mode = 'heard' | 'figure_it_out'
 type Phase = 'mode_selection' | 'intake' | 'complete'
@@ -31,9 +30,19 @@ const C = {
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
-export default function IntakePersonA() {
-  const [phase, setPhase] = useState<Phase>('mode_selection')
-  const [mode, setMode] = useState<Mode | null>(null)
+type Props = {
+  // When coming from a real session (via /session/[id]), these are provided.
+  // When used standalone (legacy /intake route), they are omitted and the
+  // component falls back to its built-in mode selection screen.
+  sessionId?: string
+  token?: string
+  mode?: Mode
+}
+
+export default function IntakePersonA({ sessionId, token, mode: modeProp }: Props = {}) {
+  // If mode is already known (passed from session page), skip mode_selection
+  const [phase, setPhase] = useState<Phase>(modeProp ? 'intake' : 'mode_selection')
+  const [mode, setMode] = useState<Mode | null>(modeProp ?? null)
   const [selectedMode, setSelectedMode] = useState<Mode | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -47,6 +56,15 @@ export default function IntakePersonA() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // When mode prop is provided, seed the opening question immediately
+  useEffect(() => {
+    if (modeProp && messages.length === 0) {
+      setMessages([{ role: 'ai', text: OPENING_QUESTIONS[modeProp] }])
+      setTimeout(() => textareaRef.current?.focus(), 150)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modeProp])
 
   const handleStartSession = () => {
     if (!selectedMode) return
@@ -74,7 +92,7 @@ export default function IntakePersonA() {
       const res = await fetch('/api/intake', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, mode, userMessageCount: newCount }),
+        body: JSON.stringify({ messages: newMessages, mode, userMessageCount: newCount, sessionId, token }),
       })
 
       if (!res.ok) throw new Error('API error')
@@ -87,13 +105,8 @@ export default function IntakePersonA() {
       setMessages(finalMessages)
 
       if (data.isComplete) {
-        // Save to Supabase — non-blocking, won't crash if table doesn't exist yet
-        const { error: saveError } = await supabase.from('intake_responses').insert({
-          mode,
-          messages: finalMessages,
-          completed_at: new Date().toISOString(),
-        })
-        if (saveError) console.log('Supabase save (non-blocking):', saveError)
+        // Intake saved to Supabase + session status advanced by the API route.
+        // (If no sessionId is present — legacy standalone mode — nothing is saved. That's fine.)
         setPhase('complete')
       }
     } catch (err) {
@@ -270,6 +283,11 @@ export default function IntakePersonA() {
   // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
   if (phase === 'complete') {
     const closingText = messages[messages.length - 1]?.text ?? ''
+    // Build the invite URL for Person B — only available when sessionId is known
+    const inviteUrl = sessionId
+      ? `${typeof window !== 'undefined' ? window.location.origin : ''}/session/${sessionId}?join=${token}`
+      : null
+
     return (
       <div
         style={{
@@ -281,8 +299,8 @@ export default function IntakePersonA() {
           padding: '24px',
         }}
       >
-        <style>{FONTS}</style>
-        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+        <div style={{ width: '100%', maxWidth: '480px', textAlign: 'center' }}>
           <div
             style={{
               width: '52px',
@@ -317,10 +335,83 @@ export default function IntakePersonA() {
               fontSize: '15px',
               color: '#4a4540',
               lineHeight: 1.75,
+              marginBottom: inviteUrl ? '32px' : '0',
             }}
           >
             {closingText}
           </p>
+
+          {/* Invite link — shown when session is linked */}
+          {inviteUrl && (
+            <div
+              style={{
+                backgroundColor: C.white,
+                border: `1px solid ${C.rule}`,
+                borderRadius: '8px',
+                padding: '20px 22px',
+                textAlign: 'left',
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '10px',
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: C.accent,
+                  marginBottom: '10px',
+                }}
+              >
+                Send this to them
+              </p>
+              <p
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '13px',
+                  color: C.muted,
+                  marginBottom: '14px',
+                  lineHeight: 1.6,
+                }}
+              >
+                Share this link with the other person so they can add their side.
+              </p>
+              <div
+                style={{
+                  backgroundColor: C.paper,
+                  border: `1px solid ${C.rule}`,
+                  borderRadius: '6px',
+                  padding: '10px 14px',
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '12px',
+                  color: C.ink,
+                  wordBreak: 'break-all',
+                  marginBottom: '12px',
+                  lineHeight: 1.5,
+                }}
+              >
+                {inviteUrl}
+              </div>
+              <button
+                onClick={() => navigator.clipboard?.writeText(inviteUrl)}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  borderRadius: '6px',
+                  backgroundColor: C.accent,
+                  color: C.white,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
+              >
+                Copy link
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )
