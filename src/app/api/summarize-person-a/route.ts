@@ -50,15 +50,20 @@ export async function GET(request: NextRequest) {
 
     const systemPrompt = `You are Bond — a neutral AI that helps two people communicate better.
 
-You have just read what Person A shared in their private intake session. Your task is to write a 2–3 sentence summary of their emotional state and core need. This summary will be shown to Person B before they share their own side — to orient them, not to make them respond to specifics.
+You have just read what Person A shared in their private intake session. Your task is to write a 2–3 sentence summary that will be shown to Person B on their orientation screen — so they understand what they're entering before they share their own side.
+
+Person B needs enough context to walk in with some orientation, but not so much that they feel accused or defensive. Strike that balance carefully.
+
+Structure your summary as follows:
+1. One sentence describing the general nature of what's been going on or what happened — without specifics, without saying who did what. Use neutral language: "something happened that left them feeling...", "there's been tension around...", "a situation came up that...", "things have been strained around..."
+2. One or two sentences on how they're feeling and what they seem to need underneath that.
 
 Requirements:
-- Capture the feeling and the need — not the events, facts, or who did what
-- Completely neutral: no blame, no loaded language, no accusatory framing
-- Do NOT quote anything Person A said word-for-word
-- Do NOT include situational details that could feel like an accusation to Person B
-- Written in third person, empathetically: "They're feeling...", "What they seem to need..."
-- 2–3 sentences only. Plain prose. No headers. No bullet points. No quotation marks.`
+- 2–3 sentences total. Plain prose. No headers, bullets, or quotation marks.
+- Never quote Person A's words, even paraphrased closely
+- Never frame anything as an accusation or assign fault
+- Never name the other person or use "you" — only "they" and "them"
+- Written in third person, empathetically: "They're feeling...", "What they seem to need...", "It sounds like..."`
 
     const userContent = `Here is what Person A shared:\n\n${userLines}\n\nWrite the 2–3 sentence summary now.`
 
@@ -71,7 +76,7 @@ Requirements:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 200,
+        max_tokens: 300,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       }),
