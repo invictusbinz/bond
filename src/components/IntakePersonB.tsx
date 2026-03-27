@@ -64,6 +64,9 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
   const [loading, setLoading] = useState(false)
   const [userMessageCount, setUserMessageCount] = useState(savedState?.userMessageCount ?? 0)
   const [error, setError] = useState<string | null>(null)
+  // Context strip — collapses by default so it doesn't crowd the intake view.
+  // Person B can tap to re-read the orientation summary at any point.
+  const [contextOpen, setContextOpen] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -309,6 +312,79 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
           </span>
         </div>
       </div>
+
+      {/* ── Context strip (collapsible) ── */}
+      {/* Only shown if there's an orientation summary to display. Collapsed by default. */}
+      {partnerSummary && (
+        <div
+          style={{
+            borderBottom: `1px solid ${C.rule}`,
+            backgroundColor: contextOpen ? C.accentSoft : C.white,
+            flexShrink: 0,
+            transition: 'background-color 0.2s',
+          }}
+        >
+          <div style={{ maxWidth: '560px', margin: '0 auto' }}>
+            {/* Toggle row */}
+            <button
+              onClick={() => setContextOpen((o) => !o)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 24px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '10px',
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  color: contextOpen ? C.accent : C.dimmed,
+                }}
+              >
+                Their emotional state
+              </span>
+              <span
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '11px',
+                  color: contextOpen ? C.accent : C.dimmed,
+                  // Rotate the chevron when open
+                  display: 'inline-block',
+                  transform: contextOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              >
+                ↓
+              </span>
+            </button>
+
+            {/* Expanded summary text */}
+            {contextOpen && (
+              <div style={{ padding: '0 24px 16px' }}>
+                <p
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '14px',
+                    color: C.ink,
+                    lineHeight: 1.75,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {partnerSummary}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Conversation area ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '36px 24px 24px' }}>
