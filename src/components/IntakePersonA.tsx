@@ -74,6 +74,29 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp }: Prop
     setTimeout(() => textareaRef.current?.focus(), 150)
   }
 
+  const handleForceClose = async () => {
+    if (loading || !mode) return
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await fetch('/api/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, mode, userMessageCount, sessionId, token, forceClose: true }),
+      })
+      if (!res.ok) throw new Error('API error')
+      const data = await res.json()
+      const aiMessage: Message = { role: 'ai', text: data.text }
+      setMessages([...messages, aiMessage])
+      if (data.isComplete) setPhase('complete')
+    } catch (err) {
+      console.error('Force close error:', err)
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!input.trim() || loading || !mode) return
     setError(null)
@@ -683,6 +706,30 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp }: Prop
               {loading ? 'Thinking…' : 'Send'}
             </button>
           </div>
+
+          {/* Subtle "done" escape hatch — only after first user message */}
+          {userMessageCount >= 1 && !loading && (
+            <div style={{ textAlign: 'center', marginTop: '14px' }}>
+              <button
+                onClick={handleForceClose}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '12px',
+                  color: '#b0a89e',
+                  padding: '4px 0',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '2px',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#b0a89e' }}
+              >
+                I&apos;ve shared enough — Bond can work with this
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

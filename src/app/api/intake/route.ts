@@ -7,7 +7,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, mode, userMessageCount, sessionId, token } = await request.json()
+    const { messages, mode, userMessageCount, sessionId, token, forceClose } = await request.json()
 
     const openingQuestion =
       mode === 'heard'
@@ -18,6 +18,37 @@ export async function POST(request: NextRequest) {
       mode === 'heard'
         ? `They chose "I need to be heard" — they want to feel understood, not solve anything. Your focus: what happened, how they feel, what they needed that they didn't get.`
         : `They chose "We need to figure something out" — they want to work through a real situation. Your focus: what's unresolved, what a good outcome looks like, what they're worried about.`
+
+    // Force-close path: user clicked "I've shared enough"
+    // Skip AI generation entirely, save what we have, advance status.
+    if (forceClose && sessionId && token) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const closingText = `${CLOSING_SIGNAL} I'm going to take some time to understand both sides and put together something for you both to read — together. You'll see it at the same time as they do.`
+      const allMessages = [...(messages as Message[]), { role: 'ai', text: closingText }]
+
+      const { data: existing } = await supabase
+        .from('intake_responses').select('id')
+        .eq('session_id', sessionId).eq('person', 'a').maybeSingle()
+
+      if (existing) {
+        await supabase.from('intake_responses')
+          .update({ messages: allMessages, completed_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      } else {
+        await supabase.from('intake_responses')
+          .insert({ session_id: sessionId, person: 'a', messages: allMessages, completed_at: new Date().toISOString() })
+      }
+
+      await supabase.from('sessions')
+        .update({ status: 'awaiting_b' })
+        .eq('id', sessionId)
+        .eq('person_a_token', token)
+
+      return NextResponse.json({ text: closingText, isComplete: true })
+    }
 
     const shouldClose = userMessageCount >= 3
 

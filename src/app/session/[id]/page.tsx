@@ -430,7 +430,7 @@ export default function SessionPage() {
     // B's pre-intake flow: checkin → orientation → intake
     // Only shown if B hasn't completed intake yet.
     if (!bAlreadyDoneIntake && personBFlow === 'not_ready') {
-      return <WaitingScreen variant="not_ready" onReadyNow={() => setPersonBFlow('checkin')} />
+      return <WaitingScreen variant="not_ready" onReadyNow={() => setPersonBFlow('orientation')} />
     }
 
     if (!bAlreadyDoneIntake && personBFlow === 'orientation') {
