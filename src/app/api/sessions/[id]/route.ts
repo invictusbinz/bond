@@ -4,12 +4,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
+    const { id } = await params
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -18,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const { data, error } = await supabase
       .from('sessions')
       .select('id, mode, status, person_a_token, person_b_token, join_code, created_at')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error || !data) {
@@ -36,6 +37,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
+    const { id } = await params
     const { status, token } = await request.json()
 
     if (!status) {
@@ -51,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const { data: session, error: fetchError } = await supabase
       .from('sessions')
       .select('person_a_token, person_b_token')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (fetchError || !session) {
@@ -65,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const { error: updateError } = await supabase
       .from('sessions')
       .update({ status })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (updateError) {
       console.error('Session status update error:', updateError)
