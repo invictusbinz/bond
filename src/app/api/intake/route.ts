@@ -86,11 +86,24 @@ ${closingInstruction}`
 
       const allMessages = [...(messages as Message[]), { role: 'ai', text: aiText }]
 
-      // Save intake (upsert in case of retry)
-      await supabase.from('intake_responses').upsert(
-        { session_id: sessionId, person: 'a', messages: allMessages, completed_at: new Date().toISOString() },
-        { onConflict: 'session_id,person' }
-      )
+      // Save intake — check if row already exists first (defensive pattern)
+      const { data: existing } = await supabase
+        .from('intake_responses')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('person', 'a')
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('intake_responses')
+          .update({ messages: allMessages, completed_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      } else {
+        await supabase
+          .from('intake_responses')
+          .insert({ session_id: sessionId, person: 'a', messages: allMessages, completed_at: new Date().toISOString() })
+      }
 
       // Advance session status to awaiting_b
       await supabase

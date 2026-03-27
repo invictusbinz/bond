@@ -136,7 +136,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
               marginBottom: '32px',
             }}
           >
-            Before you share anything,<br />
+            Before we begin,<br />
             a few things to know.
           </h1>
 
@@ -145,17 +145,17 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
 
             <IntentionBlock
               label="What this is"
-              text="Someone who knows you reached out through Bond because they wanted to communicate — about something between you two — without it becoming an argument. Bond isn't a mediator or a therapist. It's a space for both sides to be heard, privately, before anything is shared."
+              text="Someone in your life started a Bond session — a space for two people to share their sides of something honestly, without it turning into a fight. Bond hears both of you privately, then writes something for you to read together."
             />
 
             <IntentionBlock
-              label="The privacy promise"
-              text="I heard their side. I won't show it to you — and I won't show yours to them. What you write here is for me only. It won't go anywhere until I've heard from both of you."
+              label="Your privacy"
+              text="What you tell me here is private. I won't share your words with them — and I won't share their exact words with you. What you're about to read below is Bond's own read of the situation, not a transcript."
             />
 
             <IntentionBlock
               label="What happens next"
-              text="Once I've heard from both of you, I'll write a synthesis — a shared view of what's happening, what each of you seems to need, and where there might be common ground. You'll both see it at the same time. Neither side wins. Neither side loses."
+              text="Once I've heard from both of you, I'll put together a shared picture — what you each seem to need, and where there might be common ground. You'll both see it at the same time."
             />
 
           </div>
@@ -178,10 +178,21 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
                 color: C.dimmed,
+                marginBottom: '6px',
+              }}
+            >
+              Why they reached out
+            </p>
+            <p
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                color: C.dimmed,
+                lineHeight: 1.6,
                 marginBottom: '16px',
               }}
             >
-              Here's what I heard from them
+              Bond's interpretation — not their words.
             </p>
 
             <div
@@ -190,7 +201,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
                 border: `1px solid ${C.rule}`,
                 borderRadius: '8px',
                 padding: '20px 22px',
-                marginBottom: '12px',
+                marginBottom: '40px',
                 minHeight: '72px',
                 display: 'flex',
                 alignItems: loading ? 'center' : 'flex-start',
@@ -235,18 +246,6 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
                 </p>
               )}
             </div>
-
-            <p
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '12px',
-                color: C.dimmed,
-                lineHeight: 1.6,
-                marginBottom: '40px',
-              }}
-            >
-              I haven't told them you've seen this.
-            </p>
           </div>
 
           {/* ── Continue button ── */}

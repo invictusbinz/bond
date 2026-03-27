@@ -88,10 +88,24 @@ ${closingInstruction}`
 
       const allMessages = [...(messages as Message[]), { role: 'ai', text: aiText }]
 
-      await supabase.from('intake_responses').upsert(
-        { session_id: sessionId, person: 'b', messages: allMessages, completed_at: new Date().toISOString() },
-        { onConflict: 'session_id,person' }
-      )
+      // Save intake — check if row already exists first (defensive pattern)
+      const { data: existing } = await supabase
+        .from('intake_responses')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('person', 'b')
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('intake_responses')
+          .update({ messages: allMessages, completed_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      } else {
+        await supabase
+          .from('intake_responses')
+          .insert({ session_id: sessionId, person: 'b', messages: allMessages, completed_at: new Date().toISOString() })
+      }
 
       // Advance session status to synthesis_generating.
       // The session page detects this and triggers /api/synthesize automatically.

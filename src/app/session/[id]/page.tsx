@@ -80,6 +80,17 @@ const DECISION_TRIGGERS: Record<string, string> = {
   both_responded_checkpoint: '/api/post-checkpoint',
 }
 
+// Statuses that mean Person B has already completed their intake.
+// If B refreshes the page in any of these states, skip the checkin/orientation/intake flow.
+const POST_INTAKE_B_STATUSES = new Set([
+  'synthesis_generating', 'synthesis_ready',
+  'a_responded_synthesis', 'b_responded_synthesis', 'both_responded_synthesis',
+  'synthesis_revising', 'synthesis_revised',
+  'checkpoint_ready', 'a_responded_checkpoint', 'b_responded_checkpoint', 'both_responded_checkpoint',
+  'resolution_ready', 'a_responded_resolution', 'b_responded_resolution', 'both_responded_resolution',
+  'closing_generating', 'closing_ready', 'closed',
+])
+
 const C = {
   ink: '#1a1714',
   paper: '#faf8f4',
@@ -411,21 +422,18 @@ export default function SessionPage() {
 
   if (myRole === 'b') {
 
+    // If B has already completed intake (e.g. they refreshed the page),
+    // skip the checkin/orientation/intake flow entirely and route by status.
+    // Without this, a refresh would drop them back to the availability check-in.
+    const bAlreadyDoneIntake = POST_INTAKE_B_STATUSES.has(status)
+
     // B's pre-intake flow: checkin → orientation → intake
-    if (personBFlow === 'not_ready') {
-      return <WaitingScreen variant="not_ready" />
+    // Only shown if B hasn't completed intake yet.
+    if (!bAlreadyDoneIntake && personBFlow === 'not_ready') {
+      return <WaitingScreen variant="not_ready" onReadyNow={() => setPersonBFlow('checkin')} />
     }
 
-    if (personBFlow === 'checkin') {
-      return (
-        <AvailabilityCheckIn
-          onReady={() => setPersonBFlow('orientation')}
-          onNotReady={() => setPersonBFlow('not_ready')}
-        />
-      )
-    }
-
-    if (personBFlow === 'orientation') {
+    if (!bAlreadyDoneIntake && personBFlow === 'orientation') {
       return (
         <OrientationPersonB
           sessionId={sessionId}
@@ -437,12 +445,21 @@ export default function SessionPage() {
       )
     }
 
-    if (personBFlow === 'intake' && (status === 'b_active' || status === 'awaiting_b')) {
+    if (!bAlreadyDoneIntake && personBFlow === 'intake' && (status === 'b_active' || status === 'awaiting_b')) {
       return (
         <IntakePersonB
           sessionId={sessionId}
           token={myToken}
           partnerSummary={partnerSummary}
+        />
+      )
+    }
+
+    if (!bAlreadyDoneIntake && personBFlow === 'checkin') {
+      return (
+        <AvailabilityCheckIn
+          onReady={() => setPersonBFlow('orientation')}
+          onNotReady={() => setPersonBFlow('not_ready')}
         />
       )
     }
@@ -539,16 +556,7 @@ export default function SessionPage() {
     if (status === 'closing_ready') return <ComingSoonScreen label="Closing reflection" />
     if (status === 'closed') return <ClosedScreen />
 
-    // Fallback: B is in intake flow but status already moved forward
-    if (['b_active', 'awaiting_b'].includes(status) && personBFlow === 'intake') {
-      return (
-        <IntakePersonB
-          sessionId={sessionId}
-          token={myToken}
-          partnerSummary={partnerSummary}
-        />
-      )
-    }
+
 
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.paper }}>

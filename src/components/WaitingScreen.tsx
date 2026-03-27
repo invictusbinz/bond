@@ -32,8 +32,9 @@ export type WaitingVariant =
 
 type Props = {
   variant: WaitingVariant
-  inviteUrl?: string   // shown for awaiting_b variant
-  joinCode?: string    // shown for awaiting_b variant
+  inviteUrl?: string       // shown for awaiting_b variant
+  joinCode?: string        // shown for awaiting_b variant
+  onReadyNow?: () => void  // shown for not_ready variant — lets B restart the flow
 }
 
 const C = {
@@ -110,16 +111,35 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
 }
 
-export default function WaitingScreen({ variant, inviteUrl, joinCode }: Props) {
+export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow }: Props) {
   const copy = COPY[variant]
   const [copied, setCopied] = useState(false)
 
   function handleCopy() {
     if (!inviteUrl) return
-    navigator.clipboard.writeText(inviteUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
-    })
+    // Try modern clipboard API first, fall back to execCommand for older browsers
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(inviteUrl).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2500)
+      }).catch(() => fallbackCopy(inviteUrl))
+    } else {
+      fallbackCopy(inviteUrl)
+    }
+  }
+
+  function fallbackCopy(text: string) {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    try { document.execCommand('copy') } catch {}
+    document.body.removeChild(textarea)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
   }
 
   return (
@@ -277,10 +297,40 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode }: Props) {
               fontSize: '13px',
               color: C.dimmed,
               lineHeight: 1.6,
+              marginBottom: onReadyNow ? '24px' : '0',
             }}
           >
             {copy.note}
           </p>
+        )}
+
+        {/* "I'm ready now" — only for not_ready variant */}
+        {variant === 'not_ready' && onReadyNow && (
+          <button
+            onClick={onReadyNow}
+            style={{
+              padding: '11px 28px',
+              borderRadius: '8px',
+              border: `1.5px solid ${C.rule}`,
+              backgroundColor: C.white,
+              color: C.ink,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '14px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = C.accent
+              e.currentTarget.style.color = C.accent
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = C.rule
+              e.currentTarget.style.color = C.ink
+            }}
+          >
+            I'm ready now
+          </button>
         )}
 
       </div>

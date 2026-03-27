@@ -399,6 +399,25 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
               {renderSubOption('Yes, let them know', () => handleNotReadyChoice(true))}
               {renderSubOption("No, I'll come back on my own", () => handleNotReadyChoice(false))}
             </div>
+
+            <button
+              onClick={() => setPhase('checking')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '13px',
+                color: C.dimmed,
+                marginTop: '20px',
+                padding: '4px 0',
+                display: 'block',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
+            >
+              ← Go back
+            </button>
           </div>
         </div>
       </div>
@@ -508,6 +527,25 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
                 renderSubOption(opt.label, () => handleReminderChoice(opt.key))
               )}
             </div>
+
+            <button
+              onClick={() => setPhase('checking')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '13px',
+                color: C.dimmed,
+                marginTop: '20px',
+                padding: '4px 0',
+                display: 'block',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
+            >
+              ← Go back
+            </button>
           </div>
         </div>
       </div>
