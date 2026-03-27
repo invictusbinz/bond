@@ -11,6 +11,7 @@
 // Person B reads this, then continues to their own intake.
 
 import { useState, useEffect } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const C = {
   ink: '#1a1714',
@@ -36,6 +37,7 @@ type Props = {
 export default function OrientationPersonB({ sessionId, onReady }: Props) {
   const [summary, setSummary] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const m = useIsMobile()
 
   useEffect(() => {
     async function fetchSummary() {
@@ -77,7 +79,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
       {/* ── Header ── */}
       <div
         style={{
-          padding: '18px 24px',
+          padding: m ? '12px 16px' : '18px 24px',
           borderBottom: `1px solid ${C.rule}`,
           backgroundColor: C.white,
         }}
@@ -120,7 +122,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '48px 24px 60px',
+          padding: m ? '24px 16px 40px' : '48px 24px 60px',
         }}
       >
         <div style={{ maxWidth: '520px', margin: '0 auto' }}>
@@ -129,7 +131,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '28px',
+              fontSize: m ? '24px' : '28px',
               fontWeight: 400,
               color: C.ink,
               lineHeight: 1.3,

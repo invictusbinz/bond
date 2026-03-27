@@ -13,6 +13,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveToken } from '@/lib/session'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 type Mode = 'heard' | 'figure_it_out'
 
@@ -33,6 +34,7 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 
 export default function SessionStart() {
   const router = useRouter()
+  const m = useIsMobile()
 
   // ── Person A: start a session ──────────────────────────────────────────────
   const [selectedMode, setSelectedMode] = useState<Mode | null>(null)
@@ -110,7 +112,7 @@ export default function SessionStart() {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: C.paper,
-        padding: '24px',
+        padding: m ? '16px' : '24px',
       }}
     >
       <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
@@ -122,7 +124,7 @@ export default function SessionStart() {
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: '32px',
+              fontSize: m ? '28px' : '32px',
               fontWeight: 400,
               color: C.ink,
               marginBottom: '12px',
@@ -150,7 +152,7 @@ export default function SessionStart() {
             backgroundColor: C.white,
             border: `1px solid ${C.rule}`,
             borderRadius: '10px',
-            padding: '36px',
+            padding: m ? '20px' : '36px',
           }}
         >
           <div
@@ -281,7 +283,7 @@ export default function SessionStart() {
             backgroundColor: C.white,
             border: `1px solid ${C.rule}`,
             borderRadius: '10px',
-            padding: '28px 36px',
+            padding: m ? '20px 16px' : '28px 36px',
             marginTop: '16px',
           }}
         >
@@ -310,8 +312,8 @@ export default function SessionStart() {
             Your partner started a session and gave you a 6-character code.
           </p>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: m ? 'column' : 'row', gap: '10px', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, width: '100%' }}>
               <input
                 type="text"
                 value={joinCode}
@@ -363,6 +365,7 @@ export default function SessionStart() {
                 whiteSpace: 'nowrap',
                 transition: 'background-color 0.15s',
                 flexShrink: 0,
+                width: m ? '100%' : 'auto',
               }}
             >
               {joining ? 'Joining…' : 'Join'}

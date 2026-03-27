@@ -18,6 +18,7 @@
 // and will re-render the right screen when status changes.
 
 import { useState } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 export type WaitingVariant =
   | 'awaiting_b'
@@ -114,6 +115,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
 export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow }: Props) {
   const copy = COPY[variant]
   const [copied, setCopied] = useState(false)
+  const m = useIsMobile()
 
   function handleCopy() {
     if (!inviteUrl) return
@@ -150,7 +152,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: C.paper,
-        padding: '24px',
+        padding: m ? '16px' : '24px',
       }}
     >
       <style>{`
@@ -225,7 +227,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
               backgroundColor: C.white,
               border: `1px solid ${C.rule}`,
               borderRadius: '8px',
-              padding: '20px 24px',
+              padding: m ? '16px' : '20px 24px',
               marginBottom: '20px',
               textAlign: 'left',
             }}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   const [selectedOption, setSelectedOption] = useState<AvailabilityOption | null>(null)
   const [hoveredOption, setHoveredOption] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const m = useIsMobile()
 
   // Save to Supabase, non-blocking — won't crash if table doesn't exist yet
   const saveToSupabase = async (option: AvailabilityOption, extra?: Record<string, unknown>) => {
@@ -242,14 +244,14 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   // ─── PHASE: CHECKING ───────────────────────────────────────────────────────
   if (phase === 'checking') {
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
-          <div style={card}>
+          <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
             <div style={eyebrow}>Availability Check-In</div>
 
-            <h1 style={headline}>How are you feeling right now?</h1>
+            <h1 style={{ ...headline, fontSize: m ? '22px' : '26px' }}>How are you feeling right now?</h1>
             <p style={subtext}>
               There&apos;s a Bond Session waiting for you. Before you go in, take a moment.
             </p>
@@ -315,7 +317,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   if (phase === 'ready_confirmed') {
     const isStressed = selectedOption === 'stressed'
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
@@ -382,14 +384,14 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   // ─── PHASE: NOT READY FOLLOWUP ─────────────────────────────────────────────
   if (phase === 'not_ready_followup') {
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
-          <div style={card}>
+          <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
             <div style={eyebrow}>Availability Check-In</div>
 
-            <p style={aiResponse}>That&apos;s okay to say.</p>
+            <p style={{ ...aiResponse, fontSize: m ? '19px' : '22px' }}>That&apos;s okay to say.</p>
             <p style={bodyText}>
               Would you like me to let them know you&apos;ve seen this but need a day or two?
               I won&apos;t share anything else — just that you&apos;ve acknowledged it.
@@ -427,7 +429,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   // ─── PHASE: NOT READY — NOTIFIED ───────────────────────────────────────────
   if (phase === 'not_ready_notified') {
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
@@ -470,7 +472,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   // ─── PHASE: NOT READY — PRIVATE ────────────────────────────────────────────
   if (phase === 'not_ready_private') {
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
@@ -512,14 +514,14 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   // ─── PHASE: REMINDER FOLLOWUP ──────────────────────────────────────────────
   if (phase === 'reminder_followup') {
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
-          <div style={card}>
+          <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
             <div style={eyebrow}>Availability Check-In</div>
 
-            <p style={aiResponse}>Of course.</p>
+            <p style={{ ...aiResponse, fontSize: m ? '19px' : '22px' }}>Of course.</p>
             <p style={bodyText}>When would be a better time?</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -555,7 +557,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
   // ─── PHASE: REMINDER SET ───────────────────────────────────────────────────
   if (phase === 'reminder_set') {
     return (
-      <div style={pageWrap}>
+      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
         <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
