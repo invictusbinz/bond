@@ -29,6 +29,7 @@ import OrientationPersonB from '@/components/OrientationPersonB'
 import IntakePersonB from '@/components/IntakePersonB'
 import WaitingScreen from '@/components/WaitingScreen'
 import SynthesisView from '@/components/SynthesisView'
+import CheckpointView from '@/components/CheckpointView'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,10 +68,17 @@ const SLOW_POLL_STATUSES = new Set([
   'b_responded_checkpoint',
   'a_responded_resolution',
   'b_responded_resolution',
-  'both_responded_synthesis',    // while AI decides next step
-  'both_responded_checkpoint',
+  'both_responded_synthesis',    // while post-synthesis API decides next step
+  'both_responded_checkpoint',   // while post-checkpoint API decides next step
   'both_responded_resolution',
+  'synthesis_revised',           // waiting for both to re-read revised synthesis
 ])
+
+// Statuses that should trigger a decision API call (idempotent — safe to call multiple times)
+const DECISION_TRIGGERS: Record<string, string> = {
+  both_responded_synthesis: '/api/post-synthesis',
+  both_responded_checkpoint: '/api/post-checkpoint',
+}
 
 const C = {
   ink: '#1a1714',
@@ -177,6 +185,9 @@ export default function SessionPage() {
     init()
   }, [sessionId, searchParams])
 
+  // ── Decision trigger tracker (prevent double-firing) ──────────────────────
+  const decisionTriggeredRef = useRef<Record<string, boolean>>({})
+
   // ── Polling ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (loadState !== 'ready' || !session || !myToken) return
@@ -187,9 +198,23 @@ export default function SessionPage() {
 
     if (!isFast && !isSlow) return
 
-    // Trigger synthesis when we detect synthesis_generating
+    // Trigger synthesis generation when we detect synthesis_generating
     if (status === 'synthesis_generating' && myToken) {
       triggerSynthesis(myToken)
+    }
+
+    // Trigger decision APIs (post-synthesis, post-checkpoint) when both have responded
+    const decisionEndpoint = DECISION_TRIGGERS[status]
+    if (decisionEndpoint && myToken && !decisionTriggeredRef.current[status]) {
+      decisionTriggeredRef.current[status] = true
+      fetch(decisionEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, token: myToken }),
+      }).catch(err => {
+        console.error(`Decision trigger error for ${status}:`, err)
+        decisionTriggeredRef.current[status] = false // allow retry
+      })
     }
 
     const interval = setInterval(async () => {
@@ -198,8 +223,9 @@ export default function SessionPage() {
       const updated: SessionData = await res.json()
       if (updated.status !== session.status) {
         setSession(updated)
-        // Fetch synthesis content when it becomes ready
-        if (['synthesis_ready', 'a_responded_synthesis', 'b_responded_synthesis'].includes(updated.status)) {
+        // Fetch synthesis content when it first becomes ready, or when revised
+        if (['synthesis_ready', 'synthesis_revised', 'a_responded_synthesis',
+             'b_responded_synthesis', 'checkpoint_ready'].includes(updated.status)) {
           fetchSynthesis()
         }
       }
@@ -306,21 +332,54 @@ export default function SessionPage() {
       return <WaitingScreen variant="synthesis_revising" />
     }
 
-    if (status === 'both_responded_synthesis' || status === 'synthesis_revised') {
-      return <WaitingScreen variant="synthesis_generating" /> // placeholder until checkpoint is built
+    // Both responded — post-synthesis decision running
+    if (status === 'both_responded_synthesis') {
+      return <WaitingScreen variant="synthesis_generating" />
     }
 
-    // Checkpoint states (placeholder — checkpoint component coming next)
+    // Revised synthesis ready — show it (A reads and responds again)
+    if (status === 'synthesis_revised' && synthesis) {
+      return (
+        <SynthesisView
+          synthesis={synthesis}
+          sessionId={sessionId}
+          token={myToken}
+          myRole="a"
+          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_synthesis' } : s)}
+        />
+      )
+    }
+
+    // Checkpoint
     if (status === 'checkpoint_ready') {
-      return <ComingSoonScreen label="Checkpoint" />
+      return (
+        <CheckpointView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="a"
+          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
+        />
+      )
     }
 
     if (status === 'a_responded_checkpoint') {
       return <WaitingScreen variant="partner_checkpoint" />
     }
 
+    // B responded checkpoint first — A still needs to answer
+    if (status === 'b_responded_checkpoint') {
+      return (
+        <CheckpointView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="a"
+          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
+        />
+      )
+    }
+
     if (status === 'resolution_ready') {
-      return <ComingSoonScreen label="Resolution" />
+      return <ComingSoonScreen label="Resolution questions" />
     }
 
     if (status === 'a_responded_resolution') {
@@ -429,14 +488,52 @@ export default function SessionPage() {
       return <WaitingScreen variant="synthesis_revising" />
     }
 
-    if (status === 'both_responded_synthesis' || status === 'synthesis_revised') {
+    if (status === 'both_responded_synthesis') {
       return <WaitingScreen variant="synthesis_generating" />
     }
 
-    // Checkpoint / resolution / closing (placeholders)
-    if (status === 'checkpoint_ready') return <ComingSoonScreen label="Checkpoint" />
-    if (status === 'b_responded_checkpoint') return <WaitingScreen variant="partner_checkpoint" />
-    if (status === 'resolution_ready') return <ComingSoonScreen label="Resolution" />
+    // Revised synthesis — B reads and responds again
+    if (status === 'synthesis_revised' && synthesis) {
+      return (
+        <SynthesisView
+          synthesis={synthesis}
+          sessionId={sessionId}
+          token={myToken}
+          myRole="b"
+          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_synthesis' } : s)}
+        />
+      )
+    }
+
+    // Checkpoint
+    if (status === 'checkpoint_ready') {
+      return (
+        <CheckpointView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="b"
+          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
+        />
+      )
+    }
+
+    if (status === 'b_responded_checkpoint') {
+      return <WaitingScreen variant="partner_checkpoint" />
+    }
+
+    // A responded checkpoint first — B still needs to answer
+    if (status === 'a_responded_checkpoint') {
+      return (
+        <CheckpointView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="b"
+          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
+        />
+      )
+    }
+
+    if (status === 'resolution_ready') return <ComingSoonScreen label="Resolution questions" />
     if (status === 'b_responded_resolution') return <WaitingScreen variant="partner_resolution" />
     if (status === 'closing_generating') return <WaitingScreen variant="closing_generating" />
     if (status === 'closing_ready') return <ComingSoonScreen label="Closing reflection" />
