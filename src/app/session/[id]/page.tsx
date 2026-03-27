@@ -30,6 +30,7 @@ import IntakePersonB from '@/components/IntakePersonB'
 import WaitingScreen from '@/components/WaitingScreen'
 import SynthesisView from '@/components/SynthesisView'
 import CheckpointView from '@/components/CheckpointView'
+import ResolutionView from '@/components/ResolutionView'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,10 +44,14 @@ type SessionData = {
 }
 
 type SynthesisContent = {
-  carrying_a: string
-  carrying_b: string
-  underneath: string
-  friction: string
+  // New format (EFT+NVC personalized views)
+  a_view?: string
+  b_view?: string
+  // Legacy format (backward compat)
+  carrying_a?: string
+  carrying_b?: string
+  underneath?: string
+  friction?: string
 }
 
 type MyRole = 'a' | 'b' | null
@@ -78,6 +83,7 @@ const SLOW_POLL_STATUSES = new Set([
 const DECISION_TRIGGERS: Record<string, string> = {
   both_responded_synthesis: '/api/post-synthesis',
   both_responded_checkpoint: '/api/post-checkpoint',
+  both_responded_resolution: '/api/post-resolution',
 }
 
 // Statuses that mean Person B has already completed their intake.
@@ -422,11 +428,30 @@ export default function SessionPage() {
     }
 
     if (status === 'resolution_ready') {
-      return <ComingSoonScreen label="Resolution questions" />
+      return (
+        <ResolutionView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="a"
+          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_resolution' } : s)}
+        />
+      )
     }
 
     if (status === 'a_responded_resolution') {
       return <WaitingScreen variant="partner_resolution" />
+    }
+
+    // B responded resolution first — A still needs to answer
+    if (status === 'b_responded_resolution') {
+      return (
+        <ResolutionView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="a"
+          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_resolution' } : s)}
+        />
+      )
     }
 
     if (status === 'closing_generating') {
@@ -434,7 +459,7 @@ export default function SessionPage() {
     }
 
     if (status === 'closing_ready') {
-      return <ComingSoonScreen label="Closing reflection" />
+      return <ClosingScreen />
     }
 
     if (status === 'closed') {
@@ -610,10 +635,35 @@ export default function SessionPage() {
       )
     }
 
-    if (status === 'resolution_ready') return <ComingSoonScreen label="Resolution questions" />
-    if (status === 'b_responded_resolution') return <WaitingScreen variant="partner_resolution" />
+    if (status === 'resolution_ready') {
+      return (
+        <ResolutionView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="b"
+          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_resolution' } : s)}
+        />
+      )
+    }
+
+    if (status === 'b_responded_resolution') {
+      return <WaitingScreen variant="partner_resolution" />
+    }
+
+    // A responded resolution first — B still needs to answer
+    if (status === 'a_responded_resolution') {
+      return (
+        <ResolutionView
+          sessionId={sessionId}
+          token={myToken}
+          myRole="b"
+          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_resolution' } : s)}
+        />
+      )
+    }
+
     if (status === 'closing_generating') return <WaitingScreen variant="closing_generating" />
-    if (status === 'closing_ready') return <ComingSoonScreen label="Closing reflection" />
+    if (status === 'closing_ready') return <ClosingScreen />
     if (status === 'closed') return <ClosedScreen />
 
 
@@ -647,38 +697,42 @@ function ErrorScreen({ message }: { message: string }) {
   )
 }
 
-// ─── Closed screen ─────────────────────────────────────────────────────────────
+// ─── Closing screen — shown after both complete the resolution step ─────────────
+
+function ClosingScreen() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
+      <style>{FONTS}</style>
+      <div style={{ maxWidth: '480px' }}>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#c4622d', marginBottom: '20px' }}>
+          Session complete
+        </p>
+        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 400, color: '#1a1714', marginBottom: '18px', lineHeight: 1.35 }}>
+          You both showed up for this.
+        </p>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '16px', color: '#6b6560', lineHeight: 1.75 }}>
+          Bond heard you both, held your perspectives with care, and you each took a step forward. Whatever comes next, you know a little more about where the other person is — and that's not nothing.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Closed screen — shown when one/both weren't ready (checkpoint said not_yet) ─
 
 function ClosedScreen() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
       <style>{FONTS}</style>
-      <div style={{ maxWidth: '440px', textAlign: 'center' }}>
+      <div style={{ maxWidth: '440px' }}>
         <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
           This is as far as Bond can take you right now.
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
-          One or both of you wasn't ready to move through this together. That's okay. What you each shared still matters, and Bond holds it with care.
+          One or both of you wasn&apos;t ready to move through this together. That&apos;s okay. What you each shared still matters, and Bond holds it with care.
         </p>
       </div>
     </div>
   )
 }
 
-// ─── Coming soon placeholder ───────────────────────────────────────────────────
-
-function ComingSoonScreen({ label }: { label: string }) {
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
-      <style>{FONTS}</style>
-      <div style={{ maxWidth: '400px', textAlign: 'center' }}>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', letterSpacing: '0.12em', color: '#8a8480', textTransform: 'uppercase', marginBottom: '14px' }}>
-          Coming next
-        </p>
-        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', fontWeight: 400, color: '#1a1714' }}>
-          {label}
-        </p>
-      </div>
-    </div>
-  )
-}

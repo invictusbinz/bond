@@ -11,11 +11,17 @@
 
 import { useState } from 'react'
 
+// New format: personalized per-person views (EFT+NVC framework)
+// Old format: 4-section generic structure (backward compat for existing sessions)
 type SynthesisContent = {
-  carrying_a: string
-  carrying_b: string
-  underneath: string
-  friction: string
+  // New format
+  a_view?: string
+  b_view?: string
+  // Old format (legacy — kept for backward compat)
+  carrying_a?: string
+  carrying_b?: string
+  underneath?: string
+  friction?: string
 }
 
 type Props = {
@@ -50,23 +56,12 @@ const C = {
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
-const SECTIONS = [
-  {
-    key: 'carrying_a' as const,
-    label: 'What one person is carrying',
-  },
-  {
-    key: 'carrying_b' as const,
-    label: 'What the other person is carrying',
-  },
-  {
-    key: 'underneath' as const,
-    label: 'What both of you seem to want, underneath it',
-  },
-  {
-    key: 'friction' as const,
-    label: 'Where the friction is living',
-  },
+// ─── Legacy 4-section layout (for sessions generated before the EFT+NVC rework) ─
+const LEGACY_SECTIONS = [
+  { key: 'carrying_a' as const, label: 'What one person is carrying' },
+  { key: 'carrying_b' as const, label: 'What the other person is carrying' },
+  { key: 'underneath' as const, label: 'What both of you seem to want, underneath it' },
+  { key: 'friction' as const, label: 'Where the friction is living' },
 ]
 
 export default function SynthesisView({ synthesis, sessionId, token, myRole, onResponded, isRevised = false }: Props) {
@@ -177,41 +172,69 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
           </p>
         </div>
 
-        {/* Synthesis sections */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
-          {SECTIONS.map(({ key, label }, i) => (
-            <div
-              key={key}
-              style={{
-                padding: '28px 0',
-                borderBottom: i < SECTIONS.length - 1 ? `1px solid ${C.rule}` : 'none',
-              }}
-            >
-              <p style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '10px',
-                letterSpacing: '0.1em',
-                color: C.dimmed,
-                textTransform: 'uppercase',
-                marginBottom: '10px',
-                margin: '0 0 10px 0',
-              }}>
-                {label}
-              </p>
-              <p style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: '17px',
-                fontWeight: 400,
-                fontStyle: 'italic',
-                color: C.ink,
-                lineHeight: 1.8,
-                margin: 0,
-              }}>
-                {synthesis[key]}
-              </p>
-            </div>
-          ))}
-        </div>
+        {/* Synthesis content — personalized view or legacy 4-section fallback */}
+        {(synthesis.a_view || synthesis.b_view) ? (
+          /* ── New format: personalized flowing view per person ── */
+          <div>
+            {(myRole === 'a' ? synthesis.a_view : synthesis.b_view)
+              ?.split('\n\n')
+              .filter(p => p.trim())
+              .map((para, i) => (
+                <p
+                  key={i}
+                  style={{
+                    fontFamily: "'Playfair Display', serif",
+                    fontSize: '18px',
+                    fontWeight: 400,
+                    fontStyle: 'italic',
+                    color: C.ink,
+                    lineHeight: 1.85,
+                    margin: 0,
+                    marginBottom: '28px',
+                  }}
+                >
+                  {para.trim()}
+                </p>
+              ))
+            }
+          </div>
+        ) : (
+          /* ── Legacy format: 4-section labeled layout (backward compat) ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
+            {LEGACY_SECTIONS.map(({ key, label }, i) => (
+              <div
+                key={key}
+                style={{
+                  padding: '28px 0',
+                  borderBottom: i < LEGACY_SECTIONS.length - 1 ? `1px solid ${C.rule}` : 'none',
+                }}
+              >
+                <p style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '10px',
+                  letterSpacing: '0.1em',
+                  color: C.dimmed,
+                  textTransform: 'uppercase',
+                  marginBottom: '10px',
+                  margin: '0 0 10px 0',
+                }}>
+                  {label}
+                </p>
+                <p style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '17px',
+                  fontWeight: 400,
+                  fontStyle: 'italic',
+                  color: C.ink,
+                  lineHeight: 1.8,
+                  margin: 0,
+                }}>
+                  {synthesis[key]}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Response section — accuracy question (original) or checkpoint question (revised) */}
         {!submitted && (

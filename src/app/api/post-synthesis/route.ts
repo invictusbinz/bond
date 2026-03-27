@@ -13,22 +13,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const REVISION_SYSTEM_PROMPT = `You are Bond — a thoughtful, neutral presence that helps two people understand each other more clearly.
+const REVISION_SYSTEM_PROMPT = `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC).
 
-You previously wrote a synthesis for two people after reading their intakes. One or both of them felt it didn't quite land — they gave you feedback on what was missing or inaccurate.
+You previously wrote a personalized synthesis for two people. One or both of them felt it didn't quite land — they gave you feedback on what was missing or inaccurate.
 
-Your job now is to write a revised synthesis that incorporates their feedback while staying neutral and fair to both people.
+Write a revised synthesis that incorporates their feedback while holding both people with equal care.
 
-Same structure as before — four sections. Return valid JSON only:
+CRITICAL RULES:
+- Write in warm, honest prose. No bullet points. No advice. No solutions.
+- Second person ("you") addressing the reader. "They" or "your partner" for the other person.
+- Never quote either person word for word. Reflect the emotional truth, not the words.
+- Do not minimize pain. Do not amplify fear. Do not judge anyone's intentions.
+- Use the feedback to go deeper — not just to restate with different words.
+- Be specific to what they actually shared.
+- Paragraphs flow naturally — no section headers, no numbered lists.
 
+STRUCTURE of each view (4 paragraphs flowing):
+1. Opening (2–3 sentences): What this person is carrying — their emotional experience, what feels true for them.
+2. Their need (1–2 sentences): What they seem to genuinely want or need underneath.
+3. Their partner's world (2–3 sentences): What their partner seems to be carrying, introduced with care.
+4. Shared ground and friction (2–3 sentences): What both people seem to long for. Where they keep not quite meeting.
+
+Target ~220 words per view. Paragraphs separated by \\n\\n inside the JSON string.
+
+Return only valid JSON — no preamble:
 {
-  "carrying_a": "2-3 sentences. What Person A seems to be carrying.",
-  "carrying_b": "2-3 sentences. What Person B seems to be carrying.",
-  "underneath": "2-3 sentences. What both seem to want, underneath it all.",
-  "friction": "2-3 sentences. Where the friction is actually living."
-}
-
-Write with warmth and precision. Use the feedback to go deeper, not just to restate. Return only valid JSON — no preamble.`
+  "a_view": "Revised personalized synthesis for Person A, paragraphs separated by \\n\\n",
+  "b_view": "Revised personalized synthesis for Person B, paragraphs separated by \\n\\n"
+}`
 
 export async function POST(request: NextRequest) {
   try {
@@ -152,7 +164,7 @@ Now write the revised synthesis incorporating their feedback. Return only valid 
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: REVISION_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -171,11 +183,18 @@ Now write the revised synthesis incorporating their feedback. Return only valid 
       revisedContent = JSON.parse(cleaned)
     } catch {
       console.error('Revised synthesis parse error. Raw:', rawText)
-      // If revision fails, just move to checkpoint with original synthesis
+      // If revision fails, move to checkpoint with original synthesis
       await supabase
         .from('sessions')
         .update({ status: 'checkpoint_ready' })
         .eq('id', sessionId)
+      return NextResponse.json({ ok: true, action: 'checkpoint', fallback: true })
+    }
+
+    // Validate both personalized views exist
+    if (!revisedContent.a_view || !revisedContent.b_view) {
+      console.error('Revised synthesis missing a_view or b_view. Keys:', Object.keys(revisedContent))
+      await supabase.from('sessions').update({ status: 'checkpoint_ready' }).eq('id', sessionId)
       return NextResponse.json({ ok: true, action: 'checkpoint', fallback: true })
     }
 
