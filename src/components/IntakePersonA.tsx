@@ -37,21 +37,45 @@ type Props = {
   sessionId?: string
   token?: string
   mode?: Mode
+  // The correct invite URL for Person B — built by session page with person_b_token.
+  // If not provided, the complete screen won't show the link.
+  inviteUrl?: string
 }
 
-export default function IntakePersonA({ sessionId, token, mode: modeProp }: Props = {}) {
+const storageKeyA = (id?: string) => id ? `bond_intake_a_${id}` : null
+
+export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp }: Props = {}) {
+  // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
+  const savedState = (() => {
+    const key = storageKeyA(sessionId)
+    if (!key || typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(key)
+      return raw ? JSON.parse(raw) as { messages: Message[]; userMessageCount: number } : null
+    } catch { return null }
+  })()
+
   // If mode is already known (passed from session page), skip mode_selection
   const [phase, setPhase] = useState<Phase>(modeProp ? 'intake' : 'mode_selection')
   const [mode, setMode] = useState<Mode | null>(modeProp ?? null)
   const [selectedMode, setSelectedMode] = useState<Mode | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(savedState?.messages ?? [])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [userMessageCount, setUserMessageCount] = useState(0)
+  const [userMessageCount, setUserMessageCount] = useState(savedState?.userMessageCount ?? 0)
   const [error, setError] = useState<string | null>(null)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Persist messages to localStorage after every update
+  useEffect(() => {
+    const key = storageKeyA(sessionId)
+    if (!key) return
+    try {
+      localStorage.setItem(key, JSON.stringify({ messages, userMessageCount }))
+    } catch { /* storage quota — non-blocking */ }
+  }, [messages, userMessageCount, sessionId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -88,7 +112,11 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp }: Prop
       const data = await res.json()
       const aiMessage: Message = { role: 'ai', text: data.text }
       setMessages([...messages, aiMessage])
-      if (data.isComplete) setPhase('complete')
+      if (data.isComplete) {
+        const key = storageKeyA(sessionId)
+        if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
+        setPhase('complete')
+      }
     } catch (err) {
       console.error('Force close error:', err)
       setError('Something went wrong. Please try again.')
@@ -129,7 +157,8 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp }: Prop
 
       if (data.isComplete) {
         // Intake saved to Supabase + session status advanced by the API route.
-        // (If no sessionId is present — legacy standalone mode — nothing is saved. That's fine.)
+        const key = storageKeyA(sessionId)
+        if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
         setPhase('complete')
       }
     } catch (err) {
@@ -306,10 +335,9 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp }: Prop
   // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
   if (phase === 'complete') {
     const closingText = messages[messages.length - 1]?.text ?? ''
-    // Build the invite URL for Person B — only available when sessionId is known
-    const inviteUrl = sessionId
-      ? `${typeof window !== 'undefined' ? window.location.origin : ''}/session/${sessionId}?join=${token}`
-      : null
+    // Use the invite URL passed from the session page (built with person_b_token).
+    // Never use Person A's own token here — that would give them access to nothing useful.
+    const inviteUrl = inviteUrlProp ?? null
 
     return (
       <div

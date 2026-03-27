@@ -43,11 +43,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ text: closingText, isComplete: true })
     }
 
+    // Hard cap: at 4 user messages, force-close regardless of AI behaviour.
+    if (userMessageCount >= 4 && sessionId && token) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const closingText = `${CLOSING_SIGNAL} I'm going to take some time to understand both sides and put together something for you both to read — together. You'll see it at the same time as they do.`
+      const allMessages = [...(messages as Message[]), { role: 'ai', text: closingText }]
+
+      const { data: existing } = await supabase
+        .from('intake_responses').select('id')
+        .eq('session_id', sessionId).eq('person', 'b').maybeSingle()
+      if (existing) {
+        await supabase.from('intake_responses')
+          .update({ messages: allMessages, completed_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      } else {
+        await supabase.from('intake_responses')
+          .insert({ session_id: sessionId, person: 'b', messages: allMessages, completed_at: new Date().toISOString() })
+      }
+      await supabase.from('sessions')
+        .update({ status: 'synthesis_generating' })
+        .eq('id', sessionId).eq('person_b_token', token)
+
+      return NextResponse.json({ text: closingText, isComplete: true })
+    }
+
     const shouldClose = userMessageCount >= 3
 
     const closingInstruction = shouldClose
-      ? `You have enough context now. Close the intake with EXACTLY this sentence — word for word, nothing added before or after: "${CLOSING_SIGNAL} I'm going to take some time to understand both sides and put together something for you both to read — together. You'll see it at the same time as they do."`
-      : `After 2–3 exchanges, if you genuinely have enough to work with, close with EXACTLY: "${CLOSING_SIGNAL} I'm going to take some time to understand both sides and put together something for you both to read — together. You'll see it at the same time as they do." — If you need one more thing first, ask one focused question.`
+      ? `You've heard enough to understand them. This is your last question before closing. Ask ONE final question that gives them a chance to say the most important thing they haven't said yet — something like "Before we bring you both together, is there one thing you most need them to understand that you haven't quite said?" Keep it short and make it feel like a natural, warm ending to this part. After they answer, Bond will close.`
+      : `After 2–3 exchanges, if you genuinely have enough context, ask ONE closing question that wraps things up naturally. Otherwise, ask one focused deepening question.`
 
     // Background context from Person A's side — for the AI's awareness only.
     // This helps the AI ask sharper, more relevant follow-up questions of Person B.

@@ -138,11 +138,18 @@ export default function SessionPage() {
     if (synthesisTriggeredRef.current) return
     synthesisTriggeredRef.current = true
     try {
-      await fetch('/api/synthesize', {
+      const res = await fetch('/api/synthesize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, token }),
       })
+      // fetch() never throws on HTTP errors — must check res.ok explicitly.
+      // If synthesize returns 4xx (e.g. 422 because intakes aren't ready yet),
+      // reset the ref so the next poll can retry rather than getting stuck.
+      if (!res.ok) {
+        synthesisTriggeredRef.current = false
+        return
+      }
       // After synthesis completes, re-fetch session to get updated status
       const updated = await fetchSession()
       if (updated) setSession(updated)
@@ -283,7 +290,7 @@ export default function SessionPage() {
 
     // A is doing their intake
     if (status === 'a_intake') {
-      return <IntakePersonA sessionId={sessionId} token={myToken} mode={session.mode} />
+      return <IntakePersonA sessionId={sessionId} token={myToken} mode={session.mode} inviteUrl={inviteUrl} />
     }
 
     // A waiting for B to join
@@ -451,6 +458,19 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           partnerSummary={partnerSummary}
+        />
+      )
+    }
+
+    // B was mid-intake and refreshed (status=b_active but personBFlow reset to 'checkin').
+    // Skip availability check-in and orientation — they already went through both.
+    // partnerSummary will be '' since we can't restore it from refresh, but that's okay.
+    if (!bAlreadyDoneIntake && personBFlow === 'checkin' && status === 'b_active') {
+      return (
+        <IntakePersonB
+          sessionId={sessionId}
+          token={myToken}
+          partnerSummary=""
         />
       )
     }

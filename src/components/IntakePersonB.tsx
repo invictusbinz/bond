@@ -43,18 +43,39 @@ type Props = {
   partnerSummary?: string
 }
 
+const storageKey = (id?: string) => id ? `bond_intake_b_${id}` : null
+
 export default function IntakePersonB({ sessionId, token, partnerSummary = '' }: Props) {
+  // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
+  const savedState = (() => {
+    const key = storageKey(sessionId)
+    if (!key || typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(key)
+      return raw ? JSON.parse(raw) as { messages: Message[]; userMessageCount: number } : null
+    } catch { return null }
+  })()
+
   const [phase, setPhase] = useState<Phase>('intake')
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', text: OPENING_QUESTION },
-  ])
+  const [messages, setMessages] = useState<Message[]>(
+    savedState?.messages ?? [{ role: 'ai', text: OPENING_QUESTION }]
+  )
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [userMessageCount, setUserMessageCount] = useState(0)
+  const [userMessageCount, setUserMessageCount] = useState(savedState?.userMessageCount ?? 0)
   const [error, setError] = useState<string | null>(null)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Persist messages to localStorage after every update
+  useEffect(() => {
+    const key = storageKey(sessionId)
+    if (!key) return
+    try {
+      localStorage.setItem(key, JSON.stringify({ messages, userMessageCount }))
+    } catch { /* storage quota exceeded — non-blocking */ }
+  }, [messages, userMessageCount, sessionId])
 
   // Scroll to bottom whenever messages update or AI is loading
   useEffect(() => {
@@ -80,7 +101,12 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
       const data = await res.json()
       const aiMessage: Message = { role: 'ai', text: data.text }
       setMessages([...messages, aiMessage])
-      if (data.isComplete) setPhase('complete')
+      if (data.isComplete) {
+        // Clear saved state — intake is done, next session starts fresh
+        const key = storageKey(sessionId)
+        if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
+        setPhase('complete')
+      }
     } catch (err) {
       console.error('Force close error:', err)
       setError('Something went wrong. Please try again.')
@@ -121,6 +147,8 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
 
       if (data.isComplete) {
         // Intake saved to Supabase + session status advanced by the API route.
+        const key = storageKey(sessionId)
+        if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
         setPhase('complete')
       }
     } catch (err) {
