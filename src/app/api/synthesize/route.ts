@@ -8,7 +8,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
 
 const SYNTHESIS_SYSTEM_PROMPT = `You are Bond — a thoughtful, neutral presence that helps two people understand each other more clearly.
 
@@ -117,18 +116,29 @@ ${intakeBText}
 Now write the synthesis. Return only valid JSON — no preamble, no commentary.`
 
     // ── Generate synthesis via Claude ───────────────────────────────────────
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
+    const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.NEXT_PRIVATE_CLAUDE_API_KEY!,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: SYNTHESIS_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
     })
 
-    const completion = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: SYNTHESIS_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    })
+    if (!apiResponse.ok) {
+      const errorText = await apiResponse.text()
+      console.error('Anthropic API error:', errorText)
+      throw new Error(`Anthropic API error: ${apiResponse.status}`)
+    }
 
-    const rawText = completion.content[0].type === 'text' ? completion.content[0].text : ''
+    const result = await apiResponse.json()
+    const rawText: string = result.content?.[0]?.text ?? ''
 
     // Parse the JSON — strip any markdown fences if present
     let synthesisContent: Record<string, string>
