@@ -78,14 +78,14 @@ export default function SessionStart() {
       <div style={{ width: '100%', maxWidth: '440px' }}>
 
         {/* Brand mark */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
               fontSize: '32px',
               fontWeight: 400,
               color: C.ink,
-              marginBottom: '8px',
+              marginBottom: '12px',
             }}
           >
             Bond
@@ -93,12 +93,14 @@ export default function SessionStart() {
           <p
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
+              fontSize: '15px',
               color: C.muted,
-              lineHeight: 1.6,
+              lineHeight: 1.7,
+              maxWidth: '360px',
+              margin: '0 auto',
             }}
           >
-            A space to be heard. Together.
+            Each of you shares your side privately. Bond listens, then reflects both perspectives back to you at the same time — so you can understand each other before you try to solve anything.
           </p>
         </div>
 
@@ -134,7 +136,7 @@ export default function SessionStart() {
               lineHeight: 1.35,
             }}
           >
-            What kind of support do you need right now?
+            What are you coming here to work through?
           </h2>
           <p
             style={{
@@ -145,7 +147,7 @@ export default function SessionStart() {
               marginBottom: '24px',
             }}
           >
-            This shapes how the session unfolds. The other person won&apos;t see which you chose.
+            Your partner won&apos;t see which you chose — it just shapes how Bond listens to you.
           </p>
 
           {/* Mode options */}
@@ -174,7 +176,7 @@ export default function SessionStart() {
                     marginBottom: '3px',
                   }}
                 >
-                  {m === 'heard' ? 'I need to be heard' : 'We need to figure something out'}
+                  {m === 'heard' ? 'I need to feel heard' : 'We need to work something out'}
                 </div>
                 <div
                   style={{
@@ -185,8 +187,8 @@ export default function SessionStart() {
                   }}
                 >
                   {m === 'heard'
-                    ? 'I have something on my mind. I want to share it and feel understood.'
-                    : "There's a real decision or disagreement we need to work through together."}
+                    ? 'Something happened and I want my experience to be understood.'
+                    : "There's a real disagreement or decision we need to get through together."}
                 </div>
               </button>
             ))}
@@ -229,9 +231,23 @@ export default function SessionStart() {
               if (selectedMode && !creating) e.currentTarget.style.backgroundColor = C.accent
             }}
           >
-            {creating ? 'Creating session…' : 'Start Session'}
+            {creating ? 'Starting…' : 'Begin Session'}
           </button>
         </div>
+
+        {/* Joining hint — for Person B who was sent the wrong link */}
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '12px',
+            color: C.dimmed,
+            textAlign: 'center',
+            marginTop: '20px',
+            lineHeight: 1.6,
+          }}
+        >
+          Joining a session? Use the invite link your partner sent you.
+        </p>
 
       </div>
     </div>
