@@ -31,6 +31,7 @@ import WaitingScreen from '@/components/WaitingScreen'
 import SynthesisView from '@/components/SynthesisView'
 import CheckpointView from '@/components/CheckpointView'
 import ResolutionView from '@/components/ResolutionView'
+import ClosingView from '@/components/ClosingView'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -459,7 +460,7 @@ export default function SessionPage() {
     }
 
     if (status === 'closing_ready') {
-      return <ClosingScreen />
+      return <ClosingView sessionId={sessionId} token={myToken} />
     }
 
     if (status === 'closed') {
@@ -663,7 +664,7 @@ export default function SessionPage() {
     }
 
     if (status === 'closing_generating') return <WaitingScreen variant="closing_generating" />
-    if (status === 'closing_ready') return <ClosingScreen />
+    if (status === 'closing_ready') return <ClosingView sessionId={sessionId} token={myToken} />
     if (status === 'closed') return <ClosedScreen />
 
 
@@ -691,27 +692,6 @@ function ErrorScreen({ message }: { message: string }) {
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#6b6560', lineHeight: 1.7 }}>
           {message}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Closing screen — shown after both complete the resolution step ─────────────
-
-function ClosingScreen() {
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
-      <style>{FONTS}</style>
-      <div style={{ maxWidth: '480px' }}>
-        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#c4622d', marginBottom: '20px' }}>
-          Session complete
-        </p>
-        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 400, color: '#1a1714', marginBottom: '18px', lineHeight: 1.35 }}>
-          You both showed up for this.
-        </p>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '16px', color: '#6b6560', lineHeight: 1.75 }}>
-          Bond heard you both, held your perspectives with care, and you each took a step forward. Whatever comes next, you know a little more about where the other person is — and that's not nothing.
         </p>
       </div>
     </div>
