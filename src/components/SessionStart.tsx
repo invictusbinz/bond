@@ -150,9 +150,12 @@ export default function SessionStart() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: m ? 'max(40px, 8vh)' : 'max(56px, 10vh)',
+        paddingBottom: '48px',
         backgroundColor: C.paper,
-        padding: m ? '16px' : '24px',
+        paddingLeft: m ? '20px' : '24px',
+        paddingRight: m ? '20px' : '24px',
       }}
     >
       <style>{`
@@ -164,38 +167,43 @@ export default function SessionStart() {
 
       <div style={{ width: '100%', maxWidth: '440px' }}>
 
+        {/* ── MASTHEAD — shared across all phases ── */}
+        <div
+          style={{
+            textAlign: 'center',
+            paddingBottom: '28px',
+            marginBottom: '40px',
+            borderBottom: `1px solid ${C.rule}`,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: m ? '26px' : '30px',
+              fontWeight: 400,
+              color: C.ink,
+              display: 'block',
+              marginBottom: '9px',
+            }}
+          >
+            Bond
+          </span>
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontStyle: 'italic',
+              fontSize: '14px',
+              color: C.accent,
+              letterSpacing: '0.01em',
+            }}
+          >
+            A private space for hard conversations.
+          </span>
+        </div>
+
         {/* ── PHASE 1: Name ── */}
         {phase === 'name' && (
           <div>
-            {/* Bond mark */}
-            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-              <span
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: m ? '26px' : '30px',
-                  fontWeight: 400,
-                  color: C.ink,
-                  display: 'block',
-                  marginBottom: '10px',
-                }}
-              >
-                Bond
-              </span>
-              <span
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontStyle: 'italic',
-                  fontSize: '14px',
-                  color: C.accent,
-                  letterSpacing: '0.01em',
-                }}
-              >
-                A private space for hard conversations.
-              </span>
-            </div>
-
-            {/* Masthead rule */}
-            <div style={{ height: '1px', backgroundColor: C.rule, marginBottom: '36px' }} />
 
             <h1
               style={{
