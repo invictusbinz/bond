@@ -9,8 +9,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const DEBRIEF_SYSTEM_PROMPT = `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC).
+function buildDebriefSystemPrompt(personName?: string | null): string {
+  // Inject the person's name so the debrief can open or close with it naturally.
+  // The partner's name is intentionally omitted — the debrief is fully private.
+  const nameContext = personName
+    ? `\n[NAME CONTEXT: You are writing to ${personName}. You may use their name once, naturally — at the start or somewhere it feels warm. Do not repeat it more than once.]\n`
+    : ''
 
+  return `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC).
+${nameContext}
 A two-person session has just closed. You are writing a private, personal debrief for one of the participants — addressed directly to them. They will be the only person who sees this. Their partner receives a completely separate, different debrief.
 
 You have access to:
@@ -39,6 +46,7 @@ RULES:
 - Never repeat lines verbatim from the synthesis. This should feel like a different kind of reflection — more personal, more forward-looking.
 - Do not be generic. Every sentence should feel specific to this person and what they actually shared.
 - End on something true and warm — not falsely optimistic, not heavy.`
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,7 +64,7 @@ export async function POST(request: NextRequest) {
     // ── Identify person from token ────────────────────────────────────────────
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
-      .select('status, person_a_token, person_b_token, mode')
+      .select('status, person_a_token, person_b_token, mode, person_a_name, person_b_name')
       .eq('id', sessionId)
       .single()
 
@@ -71,6 +79,9 @@ export async function POST(request: NextRequest) {
     if (!person) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
     }
+
+    // Resolve this person's name for the debrief — never pass the partner's name
+    const personName = person === 'a' ? (session.person_a_name ?? null) : (session.person_b_name ?? null)
 
     // ── Fetch this person's intake ────────────────────────────────────────────
     const { data: intakeData } = await supabase
@@ -130,7 +141,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 800,
-        system: DEBRIEF_SYSTEM_PROMPT,
+        system: buildDebriefSystemPrompt(personName),
         messages: [{ role: 'user', content: userContent }],
       }),
     })

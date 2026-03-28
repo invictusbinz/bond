@@ -11,7 +11,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, userMessageCount, partnerSummary, sessionId, token, forceClose } = await request.json()
+    const { messages, userMessageCount, partnerSummary, sessionId, token, availabilityState, forceClose } = await request.json()
 
     // Force-close path: user clicked "I've shared enough"
     // Skip AI generation entirely, save what we have, advance status.
@@ -88,8 +88,14 @@ export async function POST(request: NextRequest) {
       ? `\n[BACKGROUND CONTEXT — FOR YOUR AWARENESS ONLY. Do not reference this, quote it, or hint at it in your responses. Use it only to guide the depth and direction of your questions.]\nPerson A's emotional state and core need: "${partnerSummary}"\n[END BACKGROUND CONTEXT]\n`
       : ''
 
+    // Availability state context — adjusts tone for stressed users
+    const isStressed = availabilityState === 'stressed'
+    const availabilityContext = isStressed
+      ? `\n[AVAILABILITY NOTE: Person B indicated they are carrying some stress right now. Open with extra warmth and patience. Keep your questions shorter. Check in gently about pacing if they seem overwhelmed. Don't rush.]\n`
+      : ''
+
     const systemPrompt = `You are Bond — a warm, emotionally intelligent presence grounded in Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC). You are doing private intake with Person B.
-${partnerContext}
+${partnerContext}${availabilityContext}
 Person B has already read a neutral summary of what Person A is feeling — they are not coming in completely blind. But they have not seen Person A's raw words. Do not add to what they know about Person A's side.
 
 You opened the conversation by asking: "I've heard their side. Now I want to hear yours — not as a rebuttal, but your own experience of what's been going on. What's happening for you?"

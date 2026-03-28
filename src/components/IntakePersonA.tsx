@@ -43,11 +43,15 @@ type Props = {
   inviteUrl?: string
   // The 6-character join code — shown as an alternative to the full URL.
   joinCode?: string
+  // Name fields — personalise the opening question and API system prompt
+  personAName?: string
+  partnerNickname?: string
+  partnerRelationship?: string
 }
 
 const storageKeyA = (id?: string) => id ? `bond_intake_a_${id}` : null
 
-export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp, joinCode }: Props = {}) {
+export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp, joinCode, personAName, partnerNickname, partnerRelationship }: Props = {}) {
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
     const key = storageKeyA(sessionId)
@@ -85,10 +89,16 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // When mode prop is provided, seed the opening question immediately
+  // When mode prop is provided, seed the opening question immediately.
+  // Personalise with partnerNickname if available.
   useEffect(() => {
     if (modeProp && messages.length === 0) {
-      setMessages([{ role: 'ai', text: OPENING_QUESTIONS[modeProp] }])
+      const ref = partnerNickname || 'them'
+      const personalised: Record<Mode, string> = {
+        heard: `Before I invite ${ref} in, I want to understand what's on your mind. Take as much space as you need — what happened, and how are you feeling about it?`,
+        figure_it_out: `Before I bring ${ref} in, tell me what's going on. What's the situation, and what feels unresolved for you?`,
+      }
+      setMessages([{ role: 'ai', text: personalised[modeProp] }])
       setTimeout(() => textareaRef.current?.focus(), 150)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,7 +120,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       const res = await fetch('/api/intake', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, mode, userMessageCount, sessionId, token, forceClose: true }),
+        body: JSON.stringify({ messages, mode, userMessageCount, sessionId, token, forceClose: true, personAName, partnerNickname, partnerRelationship }),
       })
       if (!res.ok) throw new Error('API error')
       const data = await res.json()
@@ -147,7 +157,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       const res = await fetch('/api/intake', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, mode, userMessageCount: newCount, sessionId, token }),
+        body: JSON.stringify({ messages: newMessages, mode, userMessageCount: newCount, sessionId, token, personAName, partnerNickname, partnerRelationship }),
       })
 
       if (!res.ok) throw new Error('API error')

@@ -8,17 +8,27 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, mode, userMessageCount, sessionId, token, forceClose } = await request.json()
+    const { messages, mode, userMessageCount, sessionId, token, forceClose, personAName, partnerNickname, partnerRelationship } = await request.json()
+
+    // Build personalised partner reference — used in opening question + system prompt
+    const partnerRef = partnerNickname || 'them'
+    const partnerIsInvited = partnerNickname ? `${partnerNickname} is` : 'they are'
 
     const openingQuestion =
       mode === 'heard'
-        ? "Before I invite them in, I want to understand what's on your mind. Take as much space as you need — what happened, and how are you feeling about it?"
-        : "Before I bring them in, tell me what's going on. What's the situation, and what feels unresolved for you?"
+        ? `Before I invite ${partnerRef} in, I want to understand what's on your mind. Take as much space as you need — what happened, and how are you feeling about it?`
+        : `Before I bring ${partnerRef} in, tell me what's going on. What's the situation, and what feels unresolved for you?`
 
     const modeContext =
       mode === 'heard'
-        ? `They chose "I need to be heard" — they want to feel understood, not solve anything. Your focus: what happened, how they feel, what they needed that they didn't get.`
-        : `They chose "We need to figure something out" — they want to work through a real situation. Your focus: what's unresolved, what a good outcome looks like, what they're worried about.`
+        ? `They chose "I need to be heard" — ${partnerIsInvited} being invited in, but the focus right now is on Person A. Help them feel understood, not advised. Focus: what happened, how they feel, what they needed that they didn't get.`
+        : `They chose "We need to figure something out" — ${partnerIsInvited} being invited in to work through a real situation together. Focus: what's unresolved, what a good outcome looks like, what they're worried about.`
+
+    // Name context — helps Bond address Person A naturally and reference their partner precisely.
+    // Never surfaced verbatim; used only to guide tone and word choice.
+    const nameContext = (personAName || partnerNickname)
+      ? `\n[NAME CONTEXT: ${personAName ? `You are speaking with ${personAName}.` : ''} ${partnerNickname ? `Their ${partnerRelationship || 'partner'} is ${partnerNickname}.` : ''} Use their names naturally when it feels warm and appropriate — never robotically. Never address Person A by name more than once or twice in the whole conversation.]\n`
+      : ''
 
     // Force-close path: user clicked "I've shared enough"
     // Skip AI generation entirely, save what we have, advance status.
@@ -86,11 +96,11 @@ export async function POST(request: NextRequest) {
     const shouldClose = userMessageCount >= 3
 
     const closingInstruction = shouldClose
-      ? `You've heard enough to understand them. This is your last question before closing. Ask ONE final question that gives them a chance to say the most important thing they haven't said yet — something like "Before we bring them in, is there one thing you most need them to understand that you haven't quite said?" or "What do you most want to get out of this?" Keep it short and make it feel like a natural, warm ending to this part. After they answer, Bond will close.`
+      ? `You've heard enough to understand them. This is your last question before closing. Ask ONE final question that gives them a chance to say the most important thing they haven't said yet — something like "Before we bring ${partnerRef} in, is there one thing you most need ${partnerRef === 'them' ? 'them' : partnerRef} to understand that you haven't quite said?" or "What do you most want to get out of this?" Keep it short and make it feel like a natural, warm ending to this part. After they answer, Bond will close.`
       : `After 2–3 exchanges, if you genuinely have enough context, ask ONE closing question that wraps things up naturally. Otherwise, ask one focused deepening question.`
 
     const systemPrompt = `You are Bond — a warm, emotionally intelligent presence grounded in Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC). You are doing private intake with Person A.
-
+${nameContext}
 ${modeContext}
 
 You opened the conversation by asking: "${openingQuestion}"

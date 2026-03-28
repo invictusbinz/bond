@@ -81,7 +81,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
   synthesis_revising: {
     headline: 'Bond is taking another look.',
-    body: 'You gave it important feedback. Taking another look now.',
+    body: 'Taking your feedback into account.',
     color: { soft: C.blueSoft, dot: C.blue },
   },
   partner_synthesis: {

@@ -1,5 +1,5 @@
-// GET  /api/sessions/[id]   — fetch session data (status, mode, tokens for verification)
-// PATCH /api/sessions/[id]  — update session status
+// GET  /api/sessions/[id]   — fetch session data (status, mode, tokens, names)
+// PATCH /api/sessions/[id]  — update session status or name fields
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -18,7 +18,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     const { data, error } = await supabase
       .from('sessions')
-      .select('id, mode, status, person_a_token, person_b_token, join_code, created_at, a_intake_summary, b_intake_summary')
+      .select(
+        'id, mode, status, person_a_token, person_b_token, join_code, created_at, ' +
+        'a_intake_summary, b_intake_summary, ' +
+        'person_a_name, partner_nickname, partner_relationship, person_b_name'
+      )
       .eq('id', id)
       .single()
 
@@ -38,10 +42,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params
-    const { status, token } = await request.json()
+    const body = await request.json()
+    const { status, token, person_b_name } = body
 
-    if (!status) {
-      return NextResponse.json({ error: 'status is required.' }, { status: 400 })
+    // Must provide at least one updatable field
+    if (!status && !person_b_name) {
+      return NextResponse.json({ error: 'Nothing to update.' }, { status: 400 })
     }
 
     const supabase = createClient(
@@ -49,7 +55,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // Verify the caller has a valid token for this session before allowing status update
+    // Verify the caller has a valid token for this session
     const { data: session, error: fetchError } = await supabase
       .from('sessions')
       .select('person_a_token, person_b_token')
@@ -60,17 +66,22 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Session not found.' }, { status: 404 })
     }
 
-    if (token !== session.person_a_token && token !== session.person_b_token) {
+    if (token && token !== session.person_a_token && token !== session.person_b_token) {
       return NextResponse.json({ error: 'Invalid token.' }, { status: 403 })
     }
 
+    // Build update payload — only include fields that are provided
+    const updatePayload: Record<string, unknown> = {}
+    if (status) updatePayload.status = status
+    if (person_b_name) updatePayload.person_b_name = person_b_name
+
     const { error: updateError } = await supabase
       .from('sessions')
-      .update({ status })
+      .update(updatePayload)
       .eq('id', id)
 
     if (updateError) {
-      console.error('Session status update error:', updateError)
+      console.error('Session update error:', updateError)
       return NextResponse.json({ error: 'Could not update session.' }, { status: 500 })
     }
 

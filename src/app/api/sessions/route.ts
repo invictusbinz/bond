@@ -7,7 +7,7 @@ import { generateJoinCode } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
-    const { mode } = await request.json()
+    const { mode, person_a_name, partner_nickname, partner_relationship } = await request.json()
 
     if (!mode || !['heard', 'figure_it_out'].includes(mode)) {
       return NextResponse.json(
@@ -32,7 +32,13 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('sessions')
-      .insert({ mode, join_code: joinCode })
+      .insert({
+        mode,
+        join_code: joinCode,
+        person_a_name: person_a_name || null,
+        partner_nickname: partner_nickname || null,
+        partner_relationship: partner_relationship || null,
+      })
       .select('id, person_a_token, person_b_token, join_code')
       .single()
 

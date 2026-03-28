@@ -9,13 +9,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const SYNTHESIS_SYSTEM_PROMPT = `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC). You help two people see themselves and each other more clearly.
+function buildSynthesisSystemPrompt(opts: {
+  personAName?: string | null
+  personBName?: string | null
+  partnerNickname?: string | null
+  partnerRelationship?: string | null
+}): string {
+  const { personAName, personBName, partnerNickname, partnerRelationship } = opts
 
+  // Build name context for the AI — helps it address each person naturally
+  // and refer to their partner by name rather than "your partner" or "they".
+  const nameContext = (personAName || personBName || partnerNickname)
+    ? `\n[NAME CONTEXT: ${personAName ? `Person A's name is ${personAName}.` : ''} ${personBName ? `Person B's name is ${personBName}.` : ''} ${partnerNickname && partnerRelationship ? `Person A refers to Person B as "${partnerNickname}" (their ${partnerRelationship}).` : partnerNickname ? `Person A refers to Person B as "${partnerNickname}".` : ''} When you have someone's name, use it naturally in their view — once or twice at most. When addressing one person, refer to their partner by name if known, otherwise "your partner".]\n`
+    : ''
+
+  return `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC). You help two people see themselves and each other more clearly.
+${nameContext}
 You have just read both people's intake conversations in full. Your job is to write two separate, personalized synthesis views — one for each person. Each view is addressed directly to that person in second person. Each opens by validating their own experience first, then gently introduces their partner's world, then names what both seem to need underneath it all, and where the friction is actually living.
 
 CRITICAL RULES — follow every one:
 - Write in warm, honest prose. No bullet points. No advice. No solutions.
-- Second person ("you") when addressing the reader. "They" or "your partner" for the other person.
+- Second person ("you") when addressing the reader. Use the other person's name (if known) when referring to them — not generic "your partner" every time.
 - Never quote what either person said word for word. Reflect the emotional truth, not the words.
 - Do not minimize anyone's pain. Do not amplify fear or catastrophize.
 - Do not take sides. Hold both people with equal care.
@@ -36,6 +50,7 @@ Return only valid JSON with exactly this structure — no preamble, no commentar
   "a_view": "The full personalized synthesis for Person A, paragraphs separated by \\n\\n",
   "b_view": "The full personalized synthesis for Person B, paragraphs separated by \\n\\n"
 }`
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +68,7 @@ export async function POST(request: NextRequest) {
     // ── Verify token belongs to this session ────────────────────────────────
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
-      .select('id, status, person_a_token, person_b_token')
+      .select('id, status, person_a_token, person_b_token, person_a_name, person_b_name, partner_nickname, partner_relationship')
       .eq('id', sessionId)
       .single()
 
@@ -113,18 +128,30 @@ export async function POST(request: NextRequest) {
       return turns
     }
 
-    const intakeAText = formatIntake(intakeA.messages, 'Person A')
-    const intakeBText = formatIntake(intakeB.messages, 'Person B')
+    // Use real names in intake labels where available — helps AI map the transcript to the right person
+    const labelA = session.person_a_name || 'Person A'
+    const labelB = session.person_b_name || (session.partner_nickname ? `${session.partner_nickname} (Person B)` : 'Person B')
+
+    const intakeAText = formatIntake(intakeA.messages, labelA)
+    const intakeBText = formatIntake(intakeB.messages, labelB)
 
     const userPrompt = `Here are both intake conversations:
 
-─── PERSON A'S INTAKE ───
+─── ${labelA.toUpperCase()}'S INTAKE ───
 ${intakeAText}
 
-─── PERSON B'S INTAKE ───
+─── ${labelB.toUpperCase()}'S INTAKE ───
 ${intakeBText}
 
 Now write the synthesis. Return only valid JSON — no preamble, no commentary.`
+
+    // Build system prompt with name context injected
+    const synthesisSystemPrompt = buildSynthesisSystemPrompt({
+      personAName: session.person_a_name,
+      personBName: session.person_b_name,
+      partnerNickname: session.partner_nickname,
+      partnerRelationship: session.partner_relationship,
+    })
 
     // ── Generate synthesis via Claude ───────────────────────────────────────
     const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -137,7 +164,7 @@ Now write the synthesis. Return only valid JSON — no preamble, no commentary.`
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 2048,
-        system: SYNTHESIS_SYSTEM_PROMPT,
+        system: synthesisSystemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
     })

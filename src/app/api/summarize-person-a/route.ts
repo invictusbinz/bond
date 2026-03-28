@@ -16,6 +16,23 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
+    // Fetch session name fields if sessionId is present — used to personalise the summary
+    let personAName: string | null = null
+    let personBName: string | null = null
+    let partnerNickname: string | null = null
+    if (sessionId) {
+      const { data: sessionData } = await supabase
+        .from('sessions')
+        .select('person_a_name, person_b_name, partner_nickname')
+        .eq('id', sessionId)
+        .maybeSingle()
+      if (sessionData) {
+        personAName = sessionData.person_a_name ?? null
+        personBName = sessionData.person_b_name ?? null
+        partnerNickname = sessionData.partner_nickname ?? null
+      }
+    }
+
     // Fetch Person A's intake for this specific session
     let query = supabase
       .from('intake_responses')
@@ -48,9 +65,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ summary: FALLBACK_SUMMARY, hasData: false })
     }
 
-    const systemPrompt = `You are Bond — a neutral AI that helps two people communicate better.
+    // Build a light name context block for the system prompt
+    const nameContext = (personAName || personBName || partnerNickname)
+      ? `\n[NAME CONTEXT: ${personAName ? `Person A's name is ${personAName}.` : ''} ${personBName ? `Person B's name is ${personBName}. You may open the summary with their name once (e.g. "[Name],") to make it feel directly addressed.` : ''} ${partnerNickname && partnerNickname !== personBName ? `Person A refers to Person B as "${partnerNickname}".` : ''} Do not over-use names — once is enough.]\n`
+      : ''
 
-You have just read what Person A shared in their private intake session. Your task is to write a 2–3 sentence summary that will be shown to Person B before their intake begins, so they understand what they're walking into.
+    const systemPrompt = `You are Bond — a neutral AI that helps two people communicate better.
+${nameContext}
+You have just read what ${personAName || 'Person A'} shared in their private intake session. Your task is to write a 2–3 sentence summary that will be shown to ${personBName || 'Person B'} before their intake begins, so they understand what they're walking into.
 
 Your goal: give Person B enough real context to enter the conversation meaningfully — not so little that they're disoriented, not so much that they feel accused or defensive.
 
@@ -82,7 +104,7 @@ HARD RULES:
 - Never use "you" to refer to Person B — only "they" and "them" for Person A
 - Do not be so vague the summary is useless. Specific topics (money, communication, plans, intimacy, honesty, trust) are fine to name if A mentioned them.`
 
-    const userContent = `Here is what Person A shared:\n\n${userLines}\n\nWrite the 2–3 sentence summary now.`
+    const userContent = `Here is what ${personAName || 'Person A'} shared:\n\n${userLines}\n\nWrite the 2–3 sentence summary now.`
 
     const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

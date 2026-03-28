@@ -1,14 +1,12 @@
 'use client'
 
-// OrientationPersonB — the screen Person B reads before their intake begins.
+// OrientationPersonB — summary-only screen before Person B's intake.
 //
-// Two jobs:
-//   1. Intention-setting: explain what Bond is, make the privacy promise,
-//      tell Person B what happens next. Earn their trust before asking for anything.
-//   2. Show Person A's summary: a neutral 2–3 sentence AI-generated description
-//      of what Person A is feeling and needing — not their raw words.
-//
-// Person B reads this, then continues to their own intake.
+// The Bond context and privacy statement were already shown on the AvailabilityCheckIn
+// landing screen. This screen shows only:
+//   1. Person A's neutral AI-generated summary (why they reached out)
+//   2. "I'm ready to share my side" button
+//   3. Escape hatch — "Right now's not a great time" — returns to not-ready flow
 
 import { useState, useEffect } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -28,13 +26,12 @@ const C = {
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 type Props = {
-  sessionId?: string  // used to fetch the right Person A summary from Supabase
-  // Called when Person B taps "I'm ready" — passes the summary text along
-  // so the intake API can use it as background context.
+  sessionId?: string
   onReady: (partnerSummary: string) => void
+  onNotReady?: () => void    // escape hatch — "Right now's not a great time"
 }
 
-export default function OrientationPersonB({ sessionId, onReady }: Props) {
+export default function OrientationPersonB({ sessionId, onReady, onNotReady }: Props) {
   const [summary, setSummary] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const m = useIsMobile()
@@ -50,17 +47,15 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
         const data = await res.json()
         setSummary(data.summary)
       } catch {
-        // Fallback — the API itself already returns a safe fallback,
-        // but guard here too just in case fetch fails entirely
         setSummary(
-          "They reached out to share something that's been weighing on them about your relationship. I heard their side privately — the fuller picture will come together once I hear from you too."
+          "They reached out to share something that\u2019s been weighing on them about your relationship. I heard their side privately \u2014 the fuller picture will come together once I hear from you too."
         )
       } finally {
         setLoading(false)
       }
     }
     fetchSummary()
-  }, [])
+  }, [sessionId])
 
   return (
     <div
@@ -86,7 +81,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
       >
         <div
           style={{
-            maxWidth: '560px',
+            maxWidth: '520px',
             margin: '0 auto',
             display: 'flex',
             alignItems: 'center',
@@ -112,7 +107,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
               color: C.accent,
             }}
           >
-            Before You Begin
+            Your side
           </span>
         </div>
       </div>
@@ -122,135 +117,92 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: m ? '24px 16px 40px' : '48px 24px 60px',
+          padding: m ? '32px 16px 48px' : '56px 24px 64px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
         }}
       >
-        <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+        <div style={{ width: '100%', maxWidth: '520px' }}>
 
-          {/* Title */}
-          <h1
+          {/* Summary label */}
+          <p
             style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: m ? '24px' : '28px',
-              fontWeight: 400,
-              color: C.ink,
-              lineHeight: 1.3,
-              marginBottom: '32px',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '10px',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: C.dimmed,
+              marginBottom: '6px',
             }}
           >
-            Before we begin,<br />
-            a few things to know.
-          </h1>
+            Why they reached out
+          </p>
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '12px',
+              color: C.dimmed,
+              lineHeight: 1.6,
+              marginBottom: '16px',
+            }}
+          >
+            Bond&apos;s interpretation — not their words.
+          </p>
 
-          {/* ── Intention-setting paragraphs ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '36px' }}>
-
-            <IntentionBlock
-              label="What this is"
-              text="Someone in your life reached out through Bond — a space where two people can share their sides honestly, without it turning into a fight. Bond hears both of you privately, then writes something for you to read together."
-            />
-
-            <IntentionBlock
-              label="Your privacy"
-              text="What you tell me here is private. I won't share your words with them — and I won't share their exact words with you. What you're about to read below is Bond's own read of the situation, not a transcript."
-            />
-
-            <IntentionBlock
-              label="What happens next"
-              text="Once I've heard from both of you, I'll put together a shared picture — what you each seem to need, and where there might be common ground. You'll both see it at the same time."
-            />
-
-          </div>
-
-          {/* ── Divider ── */}
+          {/* Summary card */}
           <div
             style={{
-              height: '1px',
-              backgroundColor: C.rule,
-              marginBottom: '36px',
+              backgroundColor: C.summaryBg,
+              border: `1px solid ${C.rule}`,
+              borderRadius: '10px',
+              padding: m ? '20px' : '24px 28px',
+              marginBottom: '40px',
+              minHeight: '80px',
+              display: 'flex',
+              alignItems: loading ? 'center' : 'flex-start',
             }}
-          />
-
-          {/* ── Person A's summary ── */}
-          <div>
-            <p
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '10px',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: C.dimmed,
-                marginBottom: '6px',
-              }}
-            >
-              Why they reached out
-            </p>
-            <p
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '12px',
-                color: C.dimmed,
-                lineHeight: 1.6,
-                marginBottom: '16px',
-              }}
-            >
-              Bond's interpretation — not their words.
-            </p>
-
-            <div
-              style={{
-                backgroundColor: C.summaryBg,
-                border: `1px solid ${C.rule}`,
-                borderRadius: '8px',
-                padding: '20px 22px',
-                marginBottom: '40px',
-                minHeight: '72px',
-                display: 'flex',
-                alignItems: loading ? 'center' : 'flex-start',
-              }}
-            >
-              {loading ? (
-                /* Pulse animation while summary generates */
-                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        backgroundColor: C.accent,
-                        opacity: 0.4,
-                        animation: `pulse 1.4s ease-in-out ${i * 0.16}s infinite`,
-                      }}
-                    />
-                  ))}
-                  <style>{`
-                    @keyframes pulse {
-                      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-                      40%           { opacity: 0.7; transform: scale(1.1); }
-                    }
-                  `}</style>
-                </div>
-              ) : (
-                <p
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                    fontSize: '16px',
-                    fontWeight: 400,
-                    color: C.ink,
-                    lineHeight: 1.7,
-                    margin: 0,
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {summary}
-                </p>
-              )}
-            </div>
+          >
+            {loading ? (
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      backgroundColor: C.accent,
+                      opacity: 0.4,
+                      animation: `pulse 1.4s ease-in-out ${i * 0.16}s infinite`,
+                    }}
+                  />
+                ))}
+                <style>{`
+                  @keyframes pulse {
+                    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+                    40%           { opacity: 0.7; transform: scale(1.1); }
+                  }
+                `}</style>
+              </div>
+            ) : (
+              <p
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: m ? '15px' : '17px',
+                  fontWeight: 400,
+                  color: C.ink,
+                  lineHeight: 1.75,
+                  margin: 0,
+                  fontStyle: 'italic',
+                }}
+              >
+                {summary}
+              </p>
+            )}
           </div>
 
-          {/* ── Continue button ── */}
+          {/* Continue button */}
           <button
             onClick={() => onReady(summary ?? '')}
             disabled={loading}
@@ -267,6 +219,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
               cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'background-color 0.15s',
               letterSpacing: '0.01em',
+              marginBottom: '20px',
             }}
             onMouseEnter={(e) => {
               if (!loading) e.currentTarget.style.backgroundColor = C.accentHover
@@ -275,43 +228,35 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
               if (!loading) e.currentTarget.style.backgroundColor = C.accent
             }}
           >
-            I'm ready to share my side
+            I&apos;m ready to share my side
           </button>
+
+          {/* Escape hatch */}
+          {onNotReady && (
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={onNotReady}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '13px',
+                  color: C.dimmed,
+                  padding: '4px 0',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
+              >
+                Right now&apos;s not a great time
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
-    </div>
-  )
-}
-
-// ─── Sub-component: one intention block ──────────────────────────────────────
-
-function IntentionBlock({ label, text }: { label: string; text: string }) {
-  return (
-    <div>
-      <p
-        style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: '10px',
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: C.accent,
-          marginBottom: '8px',
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: '15px',
-          color: '#3a3530',
-          lineHeight: 1.75,
-          margin: 0,
-        }}
-      >
-        {text}
-      </p>
     </div>
   )
 }

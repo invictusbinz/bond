@@ -42,11 +42,14 @@ type Props = {
   // orientation screen. Passed to the intake API as background context only —
   // the AI uses it to ask better follow-up questions without revealing it to Person B.
   partnerSummary?: string
+  // Availability state from the check-in. Injected into the intake-b system prompt
+  // so the AI adjusts pacing and tone for stressed users.
+  availabilityState?: 'good' | 'stressed'
 }
 
 const storageKey = (id?: string) => id ? `bond_intake_b_${id}` : null
 
-export default function IntakePersonB({ sessionId, token, partnerSummary = '' }: Props) {
+export default function IntakePersonB({ sessionId, token, partnerSummary = '', availabilityState = 'good' }: Props) {
   const m = useIsMobile()
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
@@ -100,7 +103,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
       const res = await fetch('/api/intake-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, userMessageCount, partnerSummary, sessionId, token, forceClose: true }),
+        body: JSON.stringify({ messages, userMessageCount, partnerSummary, sessionId, token, availabilityState, forceClose: true }),
       })
       if (!res.ok) throw new Error('API error')
       const data = await res.json()
@@ -139,7 +142,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
       const res = await fetch('/api/intake-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary, sessionId, token }),
+        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary, sessionId, token, availabilityState }),
       })
 
       if (!res.ok) throw new Error('API error')

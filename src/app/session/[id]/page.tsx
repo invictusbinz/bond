@@ -44,6 +44,10 @@ type SessionData = {
   join_code: string
   a_intake_summary?: string | null
   b_intake_summary?: string | null
+  person_a_name?: string | null
+  partner_nickname?: string | null
+  partner_relationship?: string | null
+  person_b_name?: string | null
 }
 
 type SynthesisContent = {
@@ -121,6 +125,7 @@ export default function SessionPage() {
   const [myToken, setMyToken] = useState<string | null>(null)
   const [partnerSummary, setPartnerSummary] = useState('')
   const [personBFlow, setPersonBFlow] = useState<'checkin' | 'orientation' | 'intake' | 'not_ready'>('checkin')
+  const [availabilityState, setAvailabilityState] = useState<'good' | 'stressed'>('good')
   const [synthesis, setSynthesis] = useState<SynthesisContent | null>(null)
   // 1 = original synthesis, 2 = revised synthesis
   // Used to distinguish the checkpoint path (v1) from the revised-synthesis path (v2)
@@ -315,7 +320,18 @@ export default function SessionPage() {
 
     // A is doing their intake
     if (status === 'a_intake') {
-      return <IntakePersonA sessionId={sessionId} token={myToken} mode={session.mode} inviteUrl={inviteUrl} joinCode={session.join_code} />
+      return (
+        <IntakePersonA
+          sessionId={sessionId}
+          token={myToken}
+          mode={session.mode}
+          inviteUrl={inviteUrl}
+          joinCode={session.join_code}
+          personAName={session.person_a_name || undefined}
+          partnerNickname={session.partner_nickname || undefined}
+          partnerRelationship={session.partner_relationship || undefined}
+        />
+      )
     }
 
     // A waiting for B to join
@@ -467,6 +483,8 @@ export default function SessionPage() {
       )
     }
 
+    if (status === 'checkpoint_split') return <CheckpointSplitScreen />
+
     if (status === 'closing_generating') {
       return <WaitingScreen variant="closing_generating" />
     }
@@ -511,6 +529,7 @@ export default function SessionPage() {
             setPartnerSummary(summary)
             setPersonBFlow('intake')
           }}
+          onNotReady={() => setPersonBFlow('not_ready')}
         />
       )
     }
@@ -521,6 +540,7 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           partnerSummary={partnerSummary}
+          availabilityState={availabilityState}
         />
       )
     }
@@ -534,6 +554,7 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           partnerSummary=""
+          availabilityState={availabilityState}
         />
       )
     }
@@ -541,7 +562,13 @@ export default function SessionPage() {
     if (!bAlreadyDoneIntake && personBFlow === 'checkin') {
       return (
         <AvailabilityCheckIn
-          onReady={() => setPersonBFlow('orientation')}
+          personAName={session.person_a_name || undefined}
+          sessionId={sessionId}
+          token={myToken}
+          onReady={(state) => {
+            setAvailabilityState(state)
+            setPersonBFlow('orientation')
+          }}
           onNotReady={() => setPersonBFlow('not_ready')}
         />
       )
@@ -679,11 +706,10 @@ export default function SessionPage() {
       )
     }
 
+    if (status === 'checkpoint_split') return <CheckpointSplitScreen />
     if (status === 'closing_generating') return <WaitingScreen variant="closing_generating" />
     if (status === 'closing_ready') return <ClosingView sessionId={sessionId} token={myToken} />
     if (status === 'closed') return <ClosedScreen />
-
-
 
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.paper }}>
@@ -708,6 +734,24 @@ function ErrorScreen({ message }: { message: string }) {
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#6b6560', lineHeight: 1.7 }}>
           {message}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Checkpoint split screen — shown when one person wanted to resolve and the other didn't ─
+
+function CheckpointSplitScreen() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
+      <style>{FONTS}</style>
+      <div style={{ maxWidth: '440px' }}>
+        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
+          You&apos;re in different places right now.
+        </p>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
+          One of you is ready to work through this. The other needs a bit more time. That&apos;s okay — being heard is enough for now. Come back when you&apos;re both ready to keep going.
         </p>
       </div>
     </div>

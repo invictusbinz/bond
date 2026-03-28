@@ -1,23 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+// AvailabilityCheckIn — Person B's landing screen.
+//
+// One combined screen that does four things in sequence:
+//   1. Collects Person B's name (single input, "Hi")
+//   2. Reveals who reached out (Person A's name) + what Bond is + honest privacy
+//   3. Three-option availability check-in
+//   4. Not-ready confirmation with explicit notification choice + inline reminder
+//
+// Props:
+//   personAName   — Person A's name, passed from the session page
+//   sessionId     — used to save person_b_name to the session record
+//   token         — Person B's token for the PATCH call
+//   onReady       — called when B confirms they're available; passes availability state
+//   onNotReady    — called when B confirms they're not ready
+
+import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AvailabilityOption = 'ready' | 'stressed' | 'not_now' | 'need_time'
-
+type AvailabilityState = 'good' | 'stressed'
 type Phase =
-  | 'checking'
+  | 'name'         // "Hi" + name input
+  | 'checking'     // context reveal + 3-option check-in
   | 'ready_confirmed'
-  | 'not_ready_followup'
-  | 'not_ready_notified'
-  | 'not_ready_private'
-  | 'reminder_followup'
-  | 'reminder_set'
-
-type ReminderTime = 'few_hours' | 'tomorrow' | 'weekend'
+  | 'not_ready_confirm'
+  | 'not_ready_done'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -37,288 +46,371 @@ const C = {
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
-const OPTIONS: { key: AvailabilityOption; label: string; description: string }[] = [
-  {
-    key: 'ready',
-    label: "I'm good — ready to be here",
-    description: 'Present and open.',
-  },
-  {
-    key: 'stressed',
-    label: "I'm a bit stressed but I can show up",
-    description: "I'm carrying some weight, but I'm here.",
-  },
-  {
-    key: 'not_now',
-    label: "Right now's not a great time for me",
-    description: 'I need a day or two — this isn\u2019t the right moment.',
-  },
-  {
-    key: 'need_time',
-    label: 'I need a little time — remind me later',
-    description: "Tell me when to come back.",
-  },
-]
-
-const REMINDER_OPTIONS: { key: ReminderTime; label: string }[] = [
-  { key: 'few_hours', label: 'In a few hours' },
-  { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'weekend', label: 'This weekend' },
-]
-
-// ─── Shared style objects ─────────────────────────────────────────────────────
-
-const pageWrap: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: C.paper,
-  padding: '24px',
-}
-
-const card: React.CSSProperties = {
-  backgroundColor: C.white,
-  border: `1px solid ${C.rule}`,
-  borderRadius: '8px',
-  padding: '40px',
-}
-
-const eyebrow: React.CSSProperties = {
-  fontFamily: "'DM Mono', monospace",
-  fontSize: '10px',
-  letterSpacing: '0.2em',
-  textTransform: 'uppercase',
-  color: C.accent,
-  marginBottom: '20px',
-}
-
-const headline: React.CSSProperties = {
-  fontFamily: "'Playfair Display', serif",
-  fontSize: '26px',
-  fontWeight: 400,
-  color: C.ink,
-  marginBottom: '8px',
-  lineHeight: 1.3,
-}
-
-const subtext: React.CSSProperties = {
-  fontSize: '14px',
-  color: C.muted,
-  lineHeight: 1.7,
-  marginBottom: '28px',
-}
-
-const aiResponse: React.CSSProperties = {
-  fontFamily: "'Playfair Display', serif",
-  fontSize: '22px',
-  fontWeight: 400,
-  color: C.ink,
-  lineHeight: 1.5,
-  margin: '0 0 16px',
-}
-
-const bodyText: React.CSSProperties = {
-  fontSize: '15px',
-  color: '#4a4540',
-  lineHeight: 1.75,
-  marginBottom: '28px',
-}
-
-const footerNote: React.CSSProperties = {
-  fontSize: '12px',
-  color: C.dimmed,
-  lineHeight: 1.6,
-  marginTop: '24px',
-  paddingTop: '20px',
-  borderTop: `1px solid ${C.rule}`,
-}
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 type Props = {
-  // Called when Person B confirms they are ready to proceed to intake.
-  onReady?: () => void
-  // Called when Person B selects not_now or need_time — lets the session page
-  // show a warm "come back later" screen instead of the built-in dead-end copy.
+  personAName?: string
+  sessionId?: string
+  token?: string
+  onReady?: (availabilityState: AvailabilityState) => void
   onNotReady?: () => void
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {}) {
-  const [phase, setPhase] = useState<Phase>('checking')
-  const [selectedOption, setSelectedOption] = useState<AvailabilityOption | null>(null)
-  const [hoveredOption, setHoveredOption] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+export default function AvailabilityCheckIn({
+  personAName,
+  sessionId,
+  token,
+  onReady,
+  onNotReady,
+}: Props = {}) {
+  const [phase, setPhase] = useState<Phase>('name')
+  const [personBName, setPersonBName] = useState('')
+  const [selectedOption, setSelectedOption] = useState<'ready' | 'stressed' | 'not_ready' | null>(null)
+  const [notifyA, setNotifyA] = useState<boolean | null>(null)
+  const [reminderSet, setReminderSet] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const m = useIsMobile()
+  const nameRef = useRef<HTMLInputElement>(null)
 
-  // Save to Supabase, non-blocking — won't crash if table doesn't exist yet
-  const saveToSupabase = async (option: AvailabilityOption, extra?: Record<string, unknown>) => {
+  useEffect(() => {
+    if (phase === 'name' && nameRef.current) nameRef.current.focus()
+  }, [phase])
+
+  // ── Save Person B's name to the session record ─────────────────────────────
+  const savePersonBName = async (name: string) => {
+    if (!sessionId || !token || !name.trim()) return
     try {
-      const { error } = await supabase.from('availability_check_ins').insert({
-        availability: option,
-        ...extra,
-        checked_in_at: new Date().toISOString(),
+      await fetch(`/api/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ person_b_name: name.trim(), token }),
       })
-      if (error) console.log('Supabase save (non-blocking):', error)
     } catch (err) {
-      console.log('Save error (non-blocking):', err)
+      console.log('Name save (non-blocking):', err)
     }
   }
 
-  const handleOptionSelect = async (option: AvailabilityOption) => {
+  const handleNameSubmit = async () => {
+    if (!personBName.trim()) return
+    setSaving(true)
+    await savePersonBName(personBName)
+    setSaving(false)
+    setPhase('checking')
+  }
+
+  const handleOptionSelect = (option: 'ready' | 'stressed' | 'not_ready') => {
     setSelectedOption(option)
     if (option === 'ready' || option === 'stressed') {
-      setLoading(true)
-      await saveToSupabase(option)
-      setLoading(false)
+      const state: AvailabilityState = option === 'stressed' ? 'stressed' : 'good'
       setPhase('ready_confirmed')
-    } else if (option === 'not_now') {
-      setPhase('not_ready_followup')
-    } else if (option === 'need_time') {
-      setPhase('reminder_followup')
-    }
-  }
-
-  const handleNotReadyChoice = async (notify: boolean) => {
-    setLoading(true)
-    await saveToSupabase(selectedOption!, { notify_initiator: notify })
-    setLoading(false)
-    if (onNotReady) {
-      onNotReady()
+      // Small delay so user sees the selection before the phase transitions
+      setTimeout(() => {
+        if (onReady) onReady(state)
+      }, 1200)
     } else {
-      setPhase(notify ? 'not_ready_notified' : 'not_ready_private')
+      setPhase('not_ready_confirm')
     }
   }
 
-  const handleReminderChoice = async (time: ReminderTime) => {
-    setLoading(true)
-    await saveToSupabase(selectedOption!, { reminder_time: time })
-    setLoading(false)
-    if (onNotReady) {
-      onNotReady()
-    } else {
-      setPhase('reminder_set')
-    }
+  const handleNotifyChoice = (notify: boolean) => {
+    setNotifyA(notify)
+    // Notification logic: fires only if notify=true, handled by parent/future push system
+    // For now, just log and proceed — P1/P2 push notifications are a separate build task
+    console.log('notify_a:', notify)
   }
 
-  // ─── Sub-option button (reused in follow-up phases) ───────────────────────
-  const renderSubOption = (label: string, onClick: () => void) => (
-    <button
-      key={label}
-      onClick={onClick}
-      disabled={loading}
-      style={{
-        textAlign: 'left',
-        padding: '14px 18px',
-        borderRadius: '8px',
-        border: `1px solid ${C.rule}`,
-        backgroundColor: C.white,
-        cursor: loading ? 'not-allowed' : 'pointer',
-        width: '100%',
-        fontFamily: "'DM Sans', sans-serif",
-        fontSize: '14px',
-        fontWeight: 500,
-        color: loading ? C.disabled : C.ink,
-        opacity: loading ? 0.6 : 1,
-        transition: 'border-color 0.15s, color 0.15s',
-      }}
-      onMouseEnter={(e) => {
-        if (!loading) {
-          e.currentTarget.style.borderColor = C.accent
-          e.currentTarget.style.color = C.accent
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!loading) {
-          e.currentTarget.style.borderColor = C.rule
-          e.currentTarget.style.color = C.ink
-        }
-      }}
-    >
-      {label}
-    </button>
-  )
+  const handleReminderChoice = (time: string | null) => {
+    setReminderSet(time)
+    // After reminder choice, transition to not_ready_done or call parent
+    setPhase('not_ready_done')
+    if (onNotReady) onNotReady()
+  }
 
-  // ─── PHASE: CHECKING ───────────────────────────────────────────────────────
-  if (phase === 'checking') {
+  // ── pageWrap ───────────────────────────────────────────────────────────────
+  const pageWrap: React.CSSProperties = {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.paper,
+    padding: m ? '16px' : '24px',
+  }
+
+  const card: React.CSSProperties = {
+    backgroundColor: C.white,
+    border: `1px solid ${C.rule}`,
+    borderRadius: '10px',
+    padding: m ? '28px 20px' : '40px',
+    width: '100%',
+    maxWidth: '440px',
+  }
+
+  // ── PHASE: NAME ─────────────────────────────────────────────────────────────
+  if (phase === 'name') {
     return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+      <div style={pageWrap}>
+        <style>{`
+          ${FONTS}
+          body { font-family: 'DM Sans', sans-serif; }
+          input::placeholder { color: #b5aea6; }
+          input:focus { border-bottom-color: ${C.accent} !important; }
+        `}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
-          <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
-            <div style={eyebrow}>A moment</div>
-
-            <h1 style={{ ...headline, fontSize: m ? '22px' : '26px' }}>How are you feeling right now?</h1>
-            <p style={subtext}>
-              There&apos;s a session waiting for you. Before you go in, take a moment.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {OPTIONS.map((opt) => {
-                const isHovered = hoveredOption === opt.key
-                return (
-                  <button
-                    key={opt.key}
-                    onClick={() => handleOptionSelect(opt.key)}
-                    disabled={loading}
-                    onMouseEnter={() => { if (!loading) setHoveredOption(opt.key) }}
-                    onMouseLeave={() => setHoveredOption(null)}
-                    style={{
-                      textAlign: 'left',
-                      padding: '16px 18px',
-                      borderRadius: '8px',
-                      border: isHovered ? `1px solid ${C.accent}` : `1px solid ${C.rule}`,
-                      backgroundColor: isHovered ? '#fdf8f5' : C.white,
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      width: '100%',
-                      opacity: loading ? 0.6 : 1,
-                      transition: 'border-color 0.15s, background-color 0.15s',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        color: C.ink,
-                        marginBottom: '3px',
-                      }}
-                    >
-                      {opt.label}
-                    </div>
-                    <div
-                      style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: '13px',
-                        color: C.muted,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {opt.description}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            <p style={footerNote}>
-              There&apos;s no wrong answer here. How you show up matters — including saying you&apos;re not ready.
-            </p>
+          {/* Bond mark */}
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '26px',
+                fontWeight: 400,
+                color: C.ink,
+              }}
+            >
+              Bond
+            </span>
           </div>
+
+          <h1
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: m ? '36px' : '44px',
+              fontWeight: 400,
+              color: C.ink,
+              marginBottom: '32px',
+              lineHeight: 1.15,
+            }}
+          >
+            Hi
+          </h1>
+
+          <input
+            ref={nameRef}
+            type="text"
+            value={personBName}
+            onChange={(e) => setPersonBName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleNameSubmit() }}
+            placeholder="your name"
+            style={{
+              width: '100%',
+              padding: '12px 0',
+              border: 'none',
+              borderBottom: `1.5px solid #c8bfb4`,
+              borderRadius: 0,
+              backgroundColor: 'transparent',
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '17px',
+              color: C.ink,
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+            autoComplete="given-name"
+          />
+
+          <button
+            onClick={handleNameSubmit}
+            disabled={!personBName.trim() || saving}
+            style={{
+              marginTop: '32px',
+              padding: '12px 28px',
+              borderRadius: '8px',
+              backgroundColor: personBName.trim() && !saving ? C.accent : C.rule,
+              color: personBName.trim() && !saving ? C.white : C.disabled,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '14px',
+              fontWeight: 500,
+              border: 'none',
+              cursor: personBName.trim() && !saving ? 'pointer' : 'not-allowed',
+              transition: 'background-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              if (personBName.trim() && !saving) e.currentTarget.style.backgroundColor = C.accentHover
+            }}
+            onMouseLeave={(e) => {
+              if (personBName.trim() && !saving) e.currentTarget.style.backgroundColor = C.accent
+            }}
+          >
+            {saving ? 'One moment…' : 'Continue →'}
+          </button>
         </div>
       </div>
     )
   }
 
-  // ─── PHASE: READY CONFIRMED ────────────────────────────────────────────────
+  // ── PHASE: CHECKING ─────────────────────────────────────────────────────────
+  if (phase === 'checking') {
+    const displayName = personAName || 'Someone'
+
+    return (
+      <div style={{ ...pageWrap, alignItems: 'flex-start', paddingTop: m ? '48px' : '64px' }}>
+        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+
+          {/* Who reached out */}
+          <p
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '11px',
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: C.accent,
+              marginBottom: '12px',
+            }}
+          >
+            A moment
+          </p>
+
+          <h1
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: m ? '24px' : '28px',
+              fontWeight: 400,
+              color: C.ink,
+              lineHeight: 1.3,
+              marginBottom: '24px',
+            }}
+          >
+            {displayName} reached out.
+          </h1>
+
+          {/* Bond context */}
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '15px',
+              color: '#4a4540',
+              lineHeight: 1.8,
+              marginBottom: '16px',
+            }}
+          >
+            Bond is a space where two people can share their sides of something — privately —
+            without it turning into an argument. I&apos;ll hear from both of you separately,
+            then put together something for you to read together.
+          </p>
+
+          {/* Honest privacy */}
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '14px',
+              color: C.muted,
+              lineHeight: 1.75,
+              marginBottom: '36px',
+              fontStyle: 'italic',
+            }}
+          >
+            Your exact words stay private. What Bond understands from what you share
+            — the feelings, what matters to you — shapes what it puts together for you both.
+          </p>
+
+          {/* Divider */}
+          <div style={{ height: '1px', backgroundColor: C.rule, marginBottom: '28px' }} />
+
+          {/* Check-in question */}
+          <p
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: m ? '18px' : '20px',
+              fontWeight: 400,
+              color: C.ink,
+              lineHeight: 1.4,
+              marginBottom: '20px',
+            }}
+          >
+            Before we go any further — how are you right now?
+          </p>
+
+          {/* 3 options */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+            {[
+              {
+                key: 'ready' as const,
+                label: "I'm good — ready to be here",
+                desc: 'Present and open.',
+              },
+              {
+                key: 'stressed' as const,
+                label: "I'm a bit stressed, but I can show up",
+                desc: "I'm carrying some weight, but I'm here.",
+              },
+              {
+                key: 'not_ready' as const,
+                label: "Right now's not a great time",
+                desc: 'This will be here when I'm ready.',
+              },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => handleOptionSelect(opt.key)}
+                style={{
+                  textAlign: 'left',
+                  padding: '16px 18px',
+                  borderRadius: '8px',
+                  border: `1px solid ${C.rule}`,
+                  backgroundColor: C.white,
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'border-color 0.15s, background-color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = C.accent
+                  e.currentTarget.style.backgroundColor = '#fdf8f5'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = C.rule
+                  e.currentTarget.style.backgroundColor = C.white
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: C.ink,
+                    marginBottom: '3px',
+                  }}
+                >
+                  {opt.label}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    color: C.muted,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {opt.desc}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '12px',
+              color: C.dimmed,
+              lineHeight: 1.6,
+            }}
+          >
+            There&apos;s no wrong answer. How you show up matters — including saying you&apos;re not ready.
+          </p>
+
+        </div>
+      </div>
+    )
+  }
+
+  // ── PHASE: READY CONFIRMED ──────────────────────────────────────────────────
   if (phase === 'ready_confirmed') {
     const isStressed = selectedOption === 'stressed'
     return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+      <div style={{ ...pageWrap }}>
+        <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
             style={{
@@ -348,88 +440,153 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
           >
             Good to have you here.
           </h2>
-          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75, marginBottom: onReady ? '32px' : '0' }}>
+          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
             {isStressed
-              ? "It's okay to show up carrying some weight. We'll go at a pace that works. Take your time."
-              : "We'll take it easy. The session is ready whenever you are."}
+              ? "It\u2019s okay to show up carrying some weight. We\u2019ll go at a pace that works."
+              : "We\u2019ll take it easy. The session is ready whenever you are."}
           </p>
-
-          {/* Only show continue button if the parent has provided an onReady handler */}
-          {onReady && (
-            <button
-              onClick={onReady}
-              style={{
-                padding: '13px 32px',
-                borderRadius: '8px',
-                backgroundColor: C.accent,
-                color: C.white,
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '14px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
-            >
-              Continue
-            </button>
-          )}
         </div>
       </div>
     )
   }
 
-  // ─── PHASE: NOT READY FOLLOWUP ─────────────────────────────────────────────
-  if (phase === 'not_ready_followup') {
+  // ── PHASE: NOT READY CONFIRM ────────────────────────────────────────────────
+  if (phase === 'not_ready_confirm') {
+    const displayName = personAName || 'them'
+
     return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
+      <div style={pageWrap}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
-        <div style={{ width: '100%', maxWidth: '440px' }}>
-          <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
-            <div style={eyebrow}>A moment</div>
+        <div style={card}>
+          <p
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: m ? '20px' : '24px',
+              fontWeight: 400,
+              color: C.ink,
+              lineHeight: 1.4,
+              marginBottom: '8px',
+            }}
+          >
+            {personBName ? `Got it, ${personBName}.` : 'Got it.'}
+          </p>
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '15px',
+              color: '#4a4540',
+              lineHeight: 1.75,
+              marginBottom: '32px',
+            }}
+          >
+            Come back whenever you&apos;re ready — this will be here.
+          </p>
 
-            <p style={{ ...aiResponse, fontSize: m ? '19px' : '22px' }}>That&apos;s okay to say.</p>
-            <p style={bodyText}>
-              Would you like me to let them know you&apos;ve seen this but need a day or two?
-              I won&apos;t share anything else — just that you&apos;ve acknowledged it.
+          {/* Primary notification button */}
+          <button
+            onClick={() => {
+              handleNotifyChoice(true)
+              handleReminderChoice(reminderSet)
+            }}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              borderRadius: '8px',
+              backgroundColor: C.accent,
+              color: C.white,
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '14px',
+              fontWeight: 500,
+              border: 'none',
+              cursor: 'pointer',
+              marginBottom: '12px',
+              transition: 'background-color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
+          >
+            Let {displayName} know I&apos;ve seen this
+          </button>
+
+          {/* Muted quiet-return link */}
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <button
+              onClick={() => {
+                handleNotifyChoice(false)
+                handleReminderChoice(reminderSet)
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '13px',
+                color: C.dimmed,
+                padding: '4px 0',
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
+            >
+              I&apos;ll come back quietly
+            </button>
+          </div>
+
+          {/* Reminder row */}
+          <div
+            style={{
+              paddingTop: '20px',
+              borderTop: `1px solid ${C.rule}`,
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                color: C.dimmed,
+                marginBottom: '10px',
+              }}
+            >
+              Want a reminder?
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {renderSubOption('Yes, let them know', () => handleNotReadyChoice(true))}
-              {renderSubOption("No, I'll come back on my own", () => handleNotReadyChoice(false))}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {['Tomorrow', 'This weekend', 'No thanks'].map((label) => (
+                <button
+                  key={label}
+                  onClick={() => {
+                    const t = label === 'No thanks' ? null : label.toLowerCase().replace(' ', '_')
+                    setReminderSet(t)
+                  }}
+                  style={{
+                    padding: '7px 14px',
+                    borderRadius: '20px',
+                    border: `1px solid ${reminderSet === (label === 'No thanks' ? null : label.toLowerCase().replace(' ', '_')) || (label === 'No thanks' && reminderSet === null && reminderSet !== undefined) ? C.accent : C.rule}`,
+                    backgroundColor: C.white,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    color: C.muted,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.12s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.rule }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-
-            <button
-              onClick={() => setPhase('checking')}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '13px',
-                color: C.dimmed,
-                marginTop: '20px',
-                padding: '4px 0',
-                display: 'block',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
-            >
-              ← Go back
-            </button>
           </div>
         </div>
       </div>
     )
   }
 
-  // ─── PHASE: NOT READY — NOTIFIED ───────────────────────────────────────────
-  if (phase === 'not_ready_notified') {
+  // ── PHASE: NOT READY DONE (fallback if onNotReady not provided) ────────────
+  if (phase === 'not_ready_done') {
     return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
+      <div style={pageWrap}>
         <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
@@ -458,138 +615,12 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
               lineHeight: 1.3,
             }}
           >
-            Noted.
+            {notifyA ? 'Noted.' : 'No problem at all.'}
           </h2>
           <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
-            They&apos;ll know you&apos;ve seen this.
-            Come back whenever it feels right.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── PHASE: NOT READY — PRIVATE ────────────────────────────────────────────
-  if (phase === 'not_ready_private') {
-    return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
-        <style>{FONTS}</style>
-        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              backgroundColor: C.rule,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              fontSize: '18px',
-              color: C.dimmed,
-            }}
-          >
-            —
-          </div>
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '26px',
-              fontWeight: 400,
-              color: C.ink,
-              marginBottom: '12px',
-              lineHeight: 1.3,
-            }}
-          >
-            No problem at all.
-          </h2>
-          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
-            Come back whenever you&apos;re ready. There&apos;s no rush.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── PHASE: REMINDER FOLLOWUP ──────────────────────────────────────────────
-  if (phase === 'reminder_followup') {
-    return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
-
-        <div style={{ width: '100%', maxWidth: '440px' }}>
-          <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
-            <div style={eyebrow}>A moment</div>
-
-            <p style={{ ...aiResponse, fontSize: m ? '19px' : '22px' }}>Of course.</p>
-            <p style={bodyText}>When would be a better time?</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {REMINDER_OPTIONS.map((opt) =>
-                renderSubOption(opt.label, () => handleReminderChoice(opt.key))
-              )}
-            </div>
-
-            <button
-              onClick={() => setPhase('checking')}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '13px',
-                color: C.dimmed,
-                marginTop: '20px',
-                padding: '4px 0',
-                display: 'block',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
-            >
-              ← Go back
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── PHASE: REMINDER SET ───────────────────────────────────────────────────
-  if (phase === 'reminder_set') {
-    return (
-      <div style={{ ...pageWrap, padding: m ? '16px' : '24px' }}>
-        <style>{FONTS}</style>
-        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              backgroundColor: C.rule,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              fontSize: '18px',
-              color: C.dimmed,
-            }}
-          >
-            ↺
-          </div>
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: '26px',
-              fontWeight: 400,
-              color: C.ink,
-              marginBottom: '12px',
-              lineHeight: 1.3,
-            }}
-          >
-            Got it.
-          </h2>
-          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
-            The session will be here when you come back.
+            {notifyA
+              ? "They\u2019ll know you\u2019ve seen this. Come back whenever it feels right."
+              : "Come back whenever you\u2019re ready. There\u2019s no rush."}
           </p>
         </div>
       </div>
