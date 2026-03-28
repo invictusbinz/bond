@@ -323,8 +323,8 @@ export default function AvailabilityCheckIn({
               marginBottom: '32px',
             }}
           >
-            Bond is a private space for two people to share their sides of something
-            honestly — without it turning into a fight. You each share separately.
+            Bond is a private space where two people can say what's really going on
+            — without it turning into a fight. You each share separately.
             Neither of you sees what the other said. Bond listens to both of you,
             then puts something together for you to read together.
           </p>

@@ -284,7 +284,7 @@ export default function SessionStart() {
                 marginBottom: '36px',
               }}
             >
-              Bond is a private space for two people to share their sides of something honestly
+              Bond is a private space where two people can say what's really going on
               — without it turning into a fight. You each share privately. Neither of you sees
               what the other wrote. Bond listens to both of you, then puts together a shared
               picture you read at the same time.
@@ -329,11 +329,12 @@ export default function SessionStart() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div>
               <button
                 onClick={handlePartnerSubmit}
                 disabled={!partnerNickname.trim()}
                 style={{
+                  width: '100%',
                   padding: '12px 28px',
                   borderRadius: '8px',
                   backgroundColor: partnerNickname.trim() ? C.accent : C.rule,
@@ -350,22 +351,24 @@ export default function SessionStart() {
               >
                 Continue →
               </button>
-              <button
-                onClick={() => setPhase('name')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '13px',
-                  color: C.dimmed,
-                  padding: '4px 0',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
-              >
-                ← Back
-              </button>
+              <div style={{ textAlign: 'center', marginTop: '14px' }}>
+                <button
+                  onClick={() => setPhase('name')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    color: C.dimmed,
+                    padding: '4px 0',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
+                >
+                  Back
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -455,11 +458,12 @@ export default function SessionStart() {
               </p>
             )}
 
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div>
               <button
                 onClick={handleStart}
                 disabled={!selectedMode || creating}
                 style={{
+                  width: '100%',
                   padding: '13px 28px',
                   borderRadius: '8px',
                   backgroundColor: selectedMode && !creating ? C.accent : C.rule,
@@ -480,22 +484,24 @@ export default function SessionStart() {
               >
                 {creating ? 'Starting…' : 'Begin Session'}
               </button>
-              <button
-                onClick={() => setPhase('partner')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '13px',
-                  color: C.dimmed,
-                  padding: '4px 0',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
-              >
-                ← Back
-              </button>
+              <div style={{ textAlign: 'center', marginTop: '14px' }}>
+                <button
+                  onClick={() => setPhase('partner')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    color: C.dimmed,
+                    padding: '4px 0',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = C.dimmed }}
+                >
+                  Back
+                </button>
+              </div>
             </div>
           </div>
         )}

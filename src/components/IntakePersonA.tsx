@@ -4,12 +4,12 @@ import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
 
 type Mode = 'heard' | 'figure_it_out'
-type Phase = 'mode_selection' | 'intake' | 'complete'
+type Phase = 'mode_selection' | 'intake'
 type Message = { role: 'ai' | 'user'; text: string }
 
 const OPENING_QUESTIONS: Record<Mode, string> = {
   heard:
-    "Before I invite them in, I want to understand what's on your mind. Take as much space as you need — what happened, and how are you feeling about it?",
+    "Before I invite them in, I want to understand what's on your mind. What happened, and how are you feeling about it?",
   figure_it_out:
     "Before I bring them in, tell me what's going on. What's the situation, and what feels unresolved for you?",
 }
@@ -47,11 +47,14 @@ type Props = {
   personAName?: string
   partnerNickname?: string
   partnerRelationship?: string
+  // Called when intake is complete and person taps "Invite them in".
+  // Session page re-fetches status and routes to WaitingScreen awaiting_b.
+  onComplete?: () => void
 }
 
 const storageKeyA = (id?: string) => id ? `bond_intake_a_${id}` : null
 
-export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp, joinCode, personAName, partnerNickname, partnerRelationship }: Props = {}) {
+export default function IntakePersonA({ sessionId, token, mode: modeProp, inviteUrl: inviteUrlProp, joinCode, personAName, partnerNickname, partnerRelationship, onComplete }: Props = {}) {
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
     const key = storageKeyA(sessionId)
@@ -71,6 +74,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
   const [loading, setLoading] = useState(false)
   const [userMessageCount, setUserMessageCount] = useState(savedState?.userMessageCount ?? 0)
   const [error, setError] = useState<string | null>(null)
+  const [showContinue, setShowContinue] = useState(false)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -95,7 +99,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
     if (modeProp && messages.length === 0) {
       const ref = partnerNickname || 'them'
       const personalised: Record<Mode, string> = {
-        heard: `Before I invite ${ref} in, I want to understand what's on your mind. Take as much space as you need — what happened, and how are you feeling about it?`,
+        heard: `Before I invite ${ref} in, I want to understand what's on your mind. What happened, and how are you feeling about it?`,
         figure_it_out: `Before I bring ${ref} in, tell me what's going on. What's the situation, and what feels unresolved for you?`,
       }
       setMessages([{ role: 'ai', text: personalised[modeProp] }])
@@ -129,7 +133,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       if (data.isComplete) {
         const key = storageKeyA(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
-        setTimeout(() => setPhase('complete'), 3500)
+        setTimeout(() => setShowContinue(true), 3500)
       }
     } catch (err) {
       console.error('Force close error:', err)
@@ -176,7 +180,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
         // Let the closing message breathe in the conversation view for a moment
         // before transitioning — without this pause the screen cuts away before
         // the person has finished reading what Bond said.
-        setTimeout(() => setPhase('complete'), 3500)
+        setTimeout(() => setShowContinue(true), 3500)
       }
     } catch (err) {
       console.error('Intake error:', err)
@@ -346,13 +350,6 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
           </div>
         </div>
       </div>
-    )
-  }
-
-  // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
-  if (phase === 'complete') {
-    return (
-      <CompleteView inviteUrl={inviteUrlProp ?? null} joinCode={joinCode ?? null} />
     )
   }
 
@@ -561,290 +558,134 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
         }}
       >
         <div style={{ maxWidth: '560px', margin: '0 auto' }}>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Take your time. Write whatever comes to mind."
-            disabled={loading}
-            rows={3}
-            style={{
-              width: '100%',
-              resize: 'none',
-              border: 'none',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '15px',
-              color: C.ink,
-              lineHeight: 1.65,
-              backgroundColor: 'transparent',
-              padding: 0,
-              marginBottom: '14px',
-              boxSizing: 'border-box',
-              overflowY: 'hidden',
-              minHeight: '72px',
-              maxHeight: '200px',
-              opacity: loading ? 0.5 : 1,
-            }}
-          />
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span
-              className="cmd-hint"
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '10px',
-                color: '#c0b8b0',
-                letterSpacing: '0.1em',
-              }}
-            >
-              ⌘ + Enter to send
-            </span>
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim() || loading}
-              style={{
-                padding: '10px 22px',
-                borderRadius: '8px',
-                backgroundColor: input.trim() && !loading ? C.accent : C.rule,
-                color: input.trim() && !loading ? C.white : C.disabled,
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '13px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                if (input.trim() && !loading)
-                  e.currentTarget.style.backgroundColor = C.accentHover
-              }}
-              onMouseLeave={(e) => {
-                if (input.trim() && !loading)
-                  e.currentTarget.style.backgroundColor = C.accent
-              }}
-            >
-              {loading ? 'Thinking…' : 'Send'}
-            </button>
-          </div>
 
-          {/* Subtle "done" escape hatch — only after first user message */}
-          {userMessageCount >= 1 && !loading && (
-            <div style={{ textAlign: 'center', marginTop: '14px' }}>
+          {showContinue ? (
+            /* Intake complete — show "Invite them in" button */
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
               <button
-                onClick={handleForceClose}
+                onClick={() => onComplete?.()}
                 style={{
-                  background: 'none',
+                  padding: '13px 28px',
+                  borderRadius: '8px',
+                  backgroundColor: C.accent,
+                  color: C.white,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: 500,
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '12px',
-                  color: '#b0a89e',
-                  padding: '4px 0',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '2px',
+                  transition: 'background-color 0.15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#b0a89e' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
               >
-                I&apos;ve shared enough — Bond can work with this
+                Invite them in
               </button>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Sub-component: complete screen ──────────────────────────────────────────
-
-function CompleteView({ inviteUrl, joinCode }: { inviteUrl: string | null; joinCode: string | null }) {
-  const [copied, setCopied] = useState(false)
-  const m = useIsMobile()
-
-  const handleCopy = () => {
-    if (!inviteUrl) return
-    navigator.clipboard?.writeText(inviteUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
-    })
-  }
-
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: C.paper,
-        padding: m ? '16px' : '24px',
-      }}
-    >
-      <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
-
-      <div style={{ width: '100%', maxWidth: '440px' }}>
-
-        {/* Pulsing dot — matches WaitingScreen awaiting_b */}
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: C.greenSoft,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '28px',
-          }}
-        >
-          <div
-            style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              backgroundColor: C.green,
-            }}
-          />
-        </div>
-
-        {/* Heading */}
-        <h1
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: m ? '26px' : '30px',
-            fontWeight: 400,
-            color: C.ink,
-            lineHeight: 1.3,
-            marginBottom: '16px',
-          }}
-        >
-          Your side is in.
-        </h1>
-
-        {/* Sub-text */}
-        <p
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '15px',
-            color: C.muted,
-            lineHeight: 1.75,
-            marginBottom: '36px',
-            maxWidth: '380px',
-          }}
-        >
-          Now send them the link. When they&apos;re ready to share their side, Bond will bring it all together.
-        </p>
-
-        {/* Invite link card */}
-        {inviteUrl && (
-          <div
-            style={{
-              backgroundColor: C.white,
-              border: `1px solid ${C.rule}`,
-              borderRadius: '10px',
-              padding: '20px 24px',
-              marginBottom: '12px',
-            }}
-          >
-            {/* Label */}
-            <p
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '10px',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: C.dimmed,
-                marginBottom: '10px',
-              }}
-            >
-              Invite Link
-            </p>
-
-            {/* URL */}
-            <div
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '12px',
-                color: C.muted,
-                wordBreak: 'break-all',
-                lineHeight: 1.55,
-                marginBottom: joinCode ? '12px' : '0',
-              }}
-            >
-              {inviteUrl}
-            </div>
-
-            {/* Join code — alternative to the URL */}
-            {joinCode && (
-              <p
+          ) : (
+            /* Active intake — textarea + send + escape hatch */
+            <>
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="The more you share here, the more Bond has to work with."
+                disabled={loading}
+                rows={3}
                 style={{
+                  width: '100%',
+                  resize: 'none',
+                  border: 'none',
                   fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '13px',
-                  color: C.muted,
-                  margin: 0,
+                  fontSize: '15px',
+                  color: C.ink,
+                  lineHeight: 1.65,
+                  backgroundColor: 'transparent',
+                  padding: 0,
+                  marginBottom: '14px',
+                  boxSizing: 'border-box',
+                  overflowY: 'hidden',
+                  minHeight: '72px',
+                  maxHeight: '200px',
+                  opacity: loading ? 0.5 : 1,
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                 }}
               >
-                Or share the join code:{' '}
                 <span
+                  className="cmd-hint"
                   style={{
                     fontFamily: "'DM Mono', monospace",
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: C.ink,
-                    letterSpacing: '0.08em',
+                    fontSize: '10px',
+                    color: '#c0b8b0',
+                    letterSpacing: '0.1em',
                   }}
                 >
-                  {joinCode}
+                  ⌘ + Enter to send
                 </span>
-              </p>
-            )}
-          </div>
-        )}
+                <button
+                  onClick={handleSubmit}
+                  disabled={!input.trim() || loading}
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: '8px',
+                    backgroundColor: input.trim() && !loading ? C.accent : C.rule,
+                    color: input.trim() && !loading ? C.white : C.disabled,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    border: 'none',
+                    cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (input.trim() && !loading)
+                      e.currentTarget.style.backgroundColor = C.accentHover
+                  }}
+                  onMouseLeave={(e) => {
+                    if (input.trim() && !loading)
+                      e.currentTarget.style.backgroundColor = C.accent
+                  }}
+                >
+                  {loading ? 'Thinking…' : 'Send'}
+                </button>
+              </div>
 
-        {/* Copy button */}
-        {inviteUrl && (
-          <button
-            onClick={handleCopy}
-            style={{
-              width: '100%',
-              padding: '13px 16px',
-              borderRadius: '8px',
-              backgroundColor: copied ? C.green : C.white,
-              color: copied ? C.white : C.ink,
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              fontWeight: 500,
-              border: `1px solid ${copied ? C.green : C.rule}`,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s, color 0.2s, border-color 0.2s',
-              letterSpacing: '0.01em',
-              marginBottom: '16px',
-            }}
-          >
-            {copied ? 'Copied ✓' : 'Copy invite link'}
-          </button>
-        )}
+              {/* Subtle "done" escape hatch — only after first user message */}
+              {userMessageCount >= 1 && !loading && (
+                <div style={{ textAlign: 'center', marginTop: '14px' }}>
+                  <button
+                    onClick={handleForceClose}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '12px',
+                      color: '#b0a89e',
+                      padding: '4px 0',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '2px',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#b0a89e' }}
+                  >
+                    I&apos;ve shared enough — Bond can work with this
+                  </button>
+                </div>
+              )}
+            </>
+          )}
 
-        {/* Close tab note */}
-        <p
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '13px',
-            color: C.dimmed,
-            textAlign: 'center',
-          }}
-        >
-          You can close this tab and come back anytime.
-        </p>
-
+        </div>
       </div>
     </div>
   )
 }
+

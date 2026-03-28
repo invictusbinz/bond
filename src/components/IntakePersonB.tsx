@@ -5,7 +5,6 @@ import { useIsMobile } from '@/lib/useIsMobile'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Phase = 'intake' | 'complete'
 type Message = { role: 'ai' | 'user'; text: string }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -14,7 +13,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 // neutral summary of Person A's side. Now they're invited to share their own.
 // "Not as a rebuttal" is intentional: it steers away from defensiveness.
 const OPENING_QUESTION =
-  "I've heard their side. Now I want to hear yours — not as a rebuttal, but your own experience of what's been going on. What's happening for you?"
+  "I've heard their side. Now I want to hear yours — not as a rebuttal, but your own experience. What's your side of this?"
 
 const C = {
   ink: '#1a1714',
@@ -45,11 +44,14 @@ type Props = {
   // Availability state from the check-in. Injected into the intake-b system prompt
   // so the AI adjusts pacing and tone for stressed users.
   availabilityState?: 'good' | 'stressed'
+  // Called when intake is complete and person taps "Got it".
+  // Session page re-fetches status and routes to WaitingScreen synthesis_generating.
+  onComplete?: () => void
 }
 
 const storageKey = (id?: string) => id ? `bond_intake_b_${id}` : null
 
-export default function IntakePersonB({ sessionId, token, partnerSummary = '', availabilityState = 'good' }: Props) {
+export default function IntakePersonB({ sessionId, token, partnerSummary = '', availabilityState = 'good', onComplete }: Props) {
   const m = useIsMobile()
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
@@ -61,7 +63,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
     } catch { return null }
   })()
 
-  const [phase, setPhase] = useState<Phase>('intake')
+  const [showContinue, setShowContinue] = useState(false)
   const [messages, setMessages] = useState<Message[]>(
     savedState?.messages ?? [{ role: 'ai', text: OPENING_QUESTION }]
   )
@@ -114,7 +116,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
         const key = storageKey(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
         // Let the closing message breathe in the conversation view before transitioning
-        setTimeout(() => setPhase('complete'), 3500)
+        setTimeout(() => setShowContinue(true), 3500)
       }
     } catch (err) {
       console.error('Force close error:', err)
@@ -159,7 +161,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
         const key = storageKey(sessionId)
         if (key) try { localStorage.removeItem(key) } catch { /* ok */ }
         // Let the closing message breathe in the conversation view before transitioning
-        setTimeout(() => setPhase('complete'), 3500)
+        setTimeout(() => setShowContinue(true), 3500)
       }
     } catch (err) {
       console.error('Intake B error:', err)
@@ -193,69 +195,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
   const currentQuestion = !loading && lastMsg?.role === 'ai' ? lastMsg : null
   const historyMessages = currentQuestion ? messages.slice(0, -1) : messages
 
-  // ─── PHASE: COMPLETE ─────────────────────────────────────────────────────────
-  if (phase === 'complete') {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: C.paper,
-          padding: m ? '16px' : '24px',
-        }}
-      >
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
-        <div style={{ width: '100%', maxWidth: '440px' }}>
-
-          {/* Eyebrow */}
-          <p
-            style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: '11px',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              color: C.accent,
-              marginBottom: '20px',
-            }}
-          >
-            Your side is in
-          </p>
-
-          {/* Heading */}
-          <h1
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: m ? '26px' : '30px',
-              fontWeight: 400,
-              color: C.ink,
-              lineHeight: 1.3,
-              marginBottom: '16px',
-            }}
-          >
-            Bond has heard you both.
-          </h1>
-
-          {/* Sub-text */}
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '16px',
-              color: C.muted,
-              lineHeight: 1.75,
-              maxWidth: '380px',
-            }}
-          >
-            Bond is now putting together a shared picture — what you each seem to need, and where there might be common ground. You&apos;ll both see it at the same time.
-          </p>
-
-        </div>
-      </div>
-    )
-  }
-
-  // ─── PHASE: INTAKE ───────────────────────────────────────────────────────────
+  // ─── INTAKE ───────────────────────────────────────────────────────────────────
   return (
     <div
       className="intake-shell"
@@ -528,101 +468,131 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
         }}
       >
         <div style={{ maxWidth: '560px', margin: '0 auto' }}>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Take your time. Write whatever comes to mind."
-            disabled={loading}
-            rows={3}
-            style={{
-              width: '100%',
-              resize: 'none',
-              border: 'none',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '15px',
-              color: C.ink,
-              lineHeight: 1.65,
-              backgroundColor: 'transparent',
-              padding: 0,
-              marginBottom: '14px',
-              boxSizing: 'border-box',
-              overflowY: 'hidden',
-              minHeight: '72px',
-              maxHeight: '200px',
-              opacity: loading ? 0.5 : 1,
-            }}
-          />
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span
-              className="cmd-hint"
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '10px',
-                color: '#c0b8b0',
-                letterSpacing: '0.1em',
-              }}
-            >
-              ⌘ + Enter to send
-            </span>
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim() || loading}
-              style={{
-                padding: '10px 22px',
-                borderRadius: '8px',
-                backgroundColor: input.trim() && !loading ? C.accent : C.rule,
-                color: input.trim() && !loading ? C.white : C.disabled,
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '13px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                if (input.trim() && !loading)
-                  e.currentTarget.style.backgroundColor = C.accentHover
-              }}
-              onMouseLeave={(e) => {
-                if (input.trim() && !loading)
-                  e.currentTarget.style.backgroundColor = C.accent
-              }}
-            >
-              {loading ? 'Thinking…' : 'Send'}
-            </button>
-          </div>
 
-          {/* Subtle "done" escape hatch — only after first user message */}
-          {userMessageCount >= 1 && !loading && (
-            <div style={{ textAlign: 'center', marginTop: '14px' }}>
+          {showContinue ? (
+            /* Intake complete — show "Got it" button */
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
               <button
-                onClick={handleForceClose}
+                onClick={() => onComplete?.()}
                 style={{
-                  background: 'none',
+                  padding: '13px 28px',
+                  borderRadius: '8px',
+                  backgroundColor: C.accent,
+                  color: C.white,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: 500,
                   border: 'none',
                   cursor: 'pointer',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '12px',
-                  color: '#b0a89e',
-                  padding: '4px 0',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '2px',
+                  transition: 'background-color 0.15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#b0a89e' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
               >
-                I&apos;ve shared enough — Bond can work with this
+                Got it
               </button>
             </div>
+          ) : (
+            /* Active intake — textarea + send + escape hatch */
+            <>
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="The more you share here, the more Bond has to work with."
+                disabled={loading}
+                rows={3}
+                style={{
+                  width: '100%',
+                  resize: 'none',
+                  border: 'none',
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '15px',
+                  color: C.ink,
+                  lineHeight: 1.65,
+                  backgroundColor: 'transparent',
+                  padding: 0,
+                  marginBottom: '14px',
+                  boxSizing: 'border-box',
+                  overflowY: 'hidden',
+                  minHeight: '72px',
+                  maxHeight: '200px',
+                  opacity: loading ? 0.5 : 1,
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span
+                  className="cmd-hint"
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: '10px',
+                    color: '#c0b8b0',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  ⌘ + Enter to send
+                </span>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!input.trim() || loading}
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: '8px',
+                    backgroundColor: input.trim() && !loading ? C.accent : C.rule,
+                    color: input.trim() && !loading ? C.white : C.disabled,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    border: 'none',
+                    cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (input.trim() && !loading)
+                      e.currentTarget.style.backgroundColor = C.accentHover
+                  }}
+                  onMouseLeave={(e) => {
+                    if (input.trim() && !loading)
+                      e.currentTarget.style.backgroundColor = C.accent
+                  }}
+                >
+                  {loading ? 'Thinking…' : 'Send'}
+                </button>
+              </div>
+
+              {/* Subtle "done" escape hatch — only after first user message */}
+              {userMessageCount >= 1 && !loading && (
+                <div style={{ textAlign: 'center', marginTop: '14px' }}>
+                  <button
+                    onClick={handleForceClose}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '12px',
+                      color: '#b0a89e',
+                      padding: '4px 0',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '2px',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = C.muted }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#b0a89e' }}
+                  >
+                    I&apos;ve shared enough — Bond can work with this
+                  </button>
+                </div>
+              )}
+            </>
           )}
+
         </div>
       </div>
     </div>

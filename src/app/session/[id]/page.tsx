@@ -330,6 +330,10 @@ export default function SessionPage() {
           personAName={session.person_a_name || undefined}
           partnerNickname={session.partner_nickname || undefined}
           partnerRelationship={session.partner_relationship || undefined}
+          onComplete={async () => {
+            const updated = await fetchSession()
+            if (updated) setSession(updated)
+          }}
         />
       )
     }
@@ -541,6 +545,10 @@ export default function SessionPage() {
           token={myToken}
           partnerSummary={partnerSummary}
           availabilityState={availabilityState}
+          onComplete={async () => {
+            const updated = await fetchSession()
+            if (updated) setSession(updated)
+          }}
         />
       )
     }
@@ -555,6 +563,10 @@ export default function SessionPage() {
           token={myToken}
           partnerSummary=""
           availabilityState={availabilityState}
+          onComplete={async () => {
+            const updated = await fetchSession()
+            if (updated) setSession(updated)
+          }}
         />
       )
     }
