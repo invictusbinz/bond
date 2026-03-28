@@ -152,6 +152,7 @@ export default function AvailabilityCheckIn({
     return (
       <div style={{
         ...pageWrap,
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
         paddingTop: m ? 'max(40px, 8vh)' : 'max(56px, 10vh)',
@@ -171,7 +172,7 @@ export default function AvailabilityCheckIn({
             style={{
               textAlign: 'center',
               paddingBottom: '28px',
-              marginBottom: '40px',
+              marginBottom: '28px',
               borderBottom: `1px solid ${C.rule}`,
             }}
           >
@@ -206,24 +207,12 @@ export default function AvailabilityCheckIn({
               fontSize: 'clamp(38px, 8vw, 52px)',
               fontWeight: 400,
               color: C.ink,
-              marginBottom: '10px',
+              marginBottom: '32px',
               lineHeight: 1.1,
             }}
           >
             Hi
           </h1>
-
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '15px',
-              color: C.muted,
-              lineHeight: 1.6,
-              marginBottom: '28px',
-            }}
-          >
-            Someone reached out. Let&apos;s start — what should Bond call you?
-          </p>
 
           <input
             ref={nameRef}
