@@ -208,11 +208,11 @@ export default function SessionStart() {
             <h1
               style={{
                 fontFamily: "'Playfair Display', serif",
-                fontSize: m ? '36px' : '44px',
+                fontSize: m ? '40px' : '52px',
                 fontWeight: 400,
                 color: C.ink,
                 marginBottom: '10px',
-                lineHeight: 1.15,
+                lineHeight: 1.1,
               }}
             >
               Hi
@@ -245,8 +245,8 @@ export default function SessionStart() {
               onClick={handleNameSubmit}
               disabled={!personAName.trim()}
               style={{
-                marginTop: '32px',
-                padding: '12px 28px',
+                marginTop: '28px',
+                padding: '13px 28px',
                 borderRadius: '8px',
                 backgroundColor: personAName.trim() ? C.accent : C.rule,
                 color: personAName.trim() ? C.white : C.disabled,
@@ -256,6 +256,7 @@ export default function SessionStart() {
                 border: 'none',
                 cursor: personAName.trim() ? 'pointer' : 'not-allowed',
                 transition: 'background-color 0.15s',
+                width: '100%',
               }}
               onMouseEnter={(e) => { if (personAName.trim()) e.currentTarget.style.backgroundColor = C.accentHover }}
               onMouseLeave={(e) => { if (personAName.trim()) e.currentTarget.style.backgroundColor = C.accent }}
@@ -509,7 +510,7 @@ export default function SessionStart() {
         {/* ── Join a Session (always visible at bottom) ── */}
         <div
           style={{
-            marginTop: '48px',
+            marginTop: '72px',
             paddingTop: '24px',
             borderTop: `1px solid ${C.rule}`,
           }}

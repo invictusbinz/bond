@@ -203,11 +203,11 @@ export default function AvailabilityCheckIn({
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: m ? '36px' : '44px',
+              fontSize: m ? '40px' : '52px',
               fontWeight: 400,
               color: C.ink,
-              marginBottom: '12px',
-              lineHeight: 1.15,
+              marginBottom: '10px',
+              lineHeight: 1.1,
             }}
           >
             Hi
@@ -252,8 +252,8 @@ export default function AvailabilityCheckIn({
             onClick={handleNameSubmit}
             disabled={!personBName.trim() || saving}
             style={{
-              marginTop: '32px',
-              padding: '12px 28px',
+              marginTop: '28px',
+              padding: '13px 28px',
               borderRadius: '8px',
               backgroundColor: personBName.trim() && !saving ? C.accent : C.rule,
               color: personBName.trim() && !saving ? C.white : C.disabled,
@@ -263,6 +263,7 @@ export default function AvailabilityCheckIn({
               border: 'none',
               cursor: personBName.trim() && !saving ? 'pointer' : 'not-allowed',
               transition: 'background-color 0.15s',
+              width: '100%',
             }}
             onMouseEnter={(e) => {
               if (personBName.trim() && !saving) e.currentTarget.style.backgroundColor = C.accentHover
