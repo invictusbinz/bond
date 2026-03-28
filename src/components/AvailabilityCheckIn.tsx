@@ -591,13 +591,13 @@ export default function AvailabilityCheckIn({
                 <button
                   key={label}
                   onClick={() => {
-                    const t = label === 'No thanks' ? null : label.toLowerCase().replace(' ', '_')
+                    const t = label === 'No thanks' ? 'no_thanks' : label.toLowerCase().replace(' ', '_')
                     setReminderSet(t)
                   }}
                   style={{
                     padding: '7px 14px',
                     borderRadius: '20px',
-                    border: `1px solid ${reminderSet === (label === 'No thanks' ? null : label.toLowerCase().replace(' ', '_')) || (label === 'No thanks' && reminderSet === null && reminderSet !== undefined) ? C.accent : C.rule}`,
+                    border: `1px solid ${reminderSet === (label === 'No thanks' ? 'no_thanks' : label.toLowerCase().replace(' ', '_')) ? C.accent : C.rule}`,
                     backgroundColor: C.white,
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: '13px',

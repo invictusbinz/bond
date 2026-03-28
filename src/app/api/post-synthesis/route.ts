@@ -13,15 +13,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const REVISION_SYSTEM_PROMPT = `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC).
+function buildRevisionSystemPrompt(opts: {
+  personAName?: string | null
+  personBName?: string | null
+  partnerNickname?: string | null
+  partnerRelationship?: string | null
+}): string {
+  const { personAName, personBName, partnerNickname, partnerRelationship } = opts
 
+  const nameContext = (personAName || personBName || partnerNickname)
+    ? `\n[NAME CONTEXT: ${personAName ? `Person A's name is ${personAName}.` : ''} ${personBName ? `Person B's name is ${personBName}.` : ''} ${partnerNickname && partnerRelationship ? `Person A refers to Person B as "${partnerNickname}" (their ${partnerRelationship}).` : partnerNickname ? `Person A refers to Person B as "${partnerNickname}".` : ''} When you have someone's name, use it naturally in their view — once or twice at most. When addressing one person, refer to their partner by name if known, otherwise "your partner".]\n`
+    : ''
+
+  return `You are Bond — a compassionate, perceptive presence trained in the principles of Emotionally Focused Therapy (EFT) and Nonviolent Communication (NVC).
+${nameContext}
 You previously wrote a personalized synthesis for two people. One or both of them felt it didn't quite land — they gave you feedback on what was missing or inaccurate.
 
 Write a revised synthesis that incorporates their feedback while holding both people with equal care.
 
 CRITICAL RULES:
 - Write in warm, honest prose. No bullet points. No advice. No solutions.
-- Second person ("you") addressing the reader. "They" or "your partner" for the other person.
+- Second person ("you") addressing the reader. Use the other person's name (if known) when referring to them — not generic "your partner" every time.
 - Never quote either person word for word. Reflect the emotional truth, not the words.
 - Do not minimize pain. Do not amplify fear. Do not judge anyone's intentions.
 - Use the feedback to go deeper — not just to restate with different words.
@@ -41,6 +53,7 @@ Return only valid JSON — no preamble:
   "a_view": "Revised personalized synthesis for Person A, paragraphs separated by \\n\\n",
   "b_view": "Revised personalized synthesis for Person B, paragraphs separated by \\n\\n"
 }`
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,7 +71,7 @@ export async function POST(request: NextRequest) {
     // ── Verify token ────────────────────────────────────────────────────────
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
-      .select('status, person_a_token, person_b_token')
+      .select('status, person_a_token, person_b_token, person_a_name, person_b_name, partner_nickname, partner_relationship')
       .eq('id', sessionId)
       .single()
 
@@ -129,13 +142,17 @@ export async function POST(request: NextRequest) {
         .join('\n\n')
     }
 
+    // Name display labels — fall back to "Person A" / "Person B" if names not collected yet
+    const nameA = session.person_a_name || 'Person A'
+    const nameB = session.person_b_name || session.partner_nickname || 'Person B'
+
     // Build feedback summary
     const feedbackLines: string[] = []
     if (choiceA !== 'yes') {
-      feedbackLines.push(`Person A said "${choiceA}"${responseA?.context ? `: "${responseA.context}"` : '.'}`)
+      feedbackLines.push(`${nameA} said "${choiceA}"${responseA?.context ? `: "${responseA.context}"` : '.'}`)
     }
     if (choiceB !== 'yes') {
-      feedbackLines.push(`Person B said "${choiceB}"${responseB?.context ? `: "${responseB.context}"` : '.'}`)
+      feedbackLines.push(`${nameB} said "${choiceB}"${responseB?.context ? `: "${responseB.context}"` : '.'}`)
     }
 
     const userPrompt = `Here is the original synthesis you wrote:
@@ -146,11 +163,11 @@ ${feedbackLines.join('\n')}
 
 Here are the original intake conversations for reference:
 
-─── PERSON A'S INTAKE ───
-${intakeA ? formatIntake(intakeA.messages, 'Person A') : '(not available)'}
+─── ${nameA.toUpperCase()}'S INTAKE ───
+${intakeA ? formatIntake(intakeA.messages, nameA) : '(not available)'}
 
-─── PERSON B'S INTAKE ───
-${intakeB ? formatIntake(intakeB.messages, 'Person B') : '(not available)'}
+─── ${nameB.toUpperCase()}'S INTAKE ───
+${intakeB ? formatIntake(intakeB.messages, nameB) : '(not available)'}
 
 Now write the revised synthesis incorporating their feedback. Return only valid JSON.`
 
@@ -165,7 +182,12 @@ Now write the revised synthesis incorporating their feedback. Return only valid 
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 2048,
-        system: REVISION_SYSTEM_PROMPT,
+        system: buildRevisionSystemPrompt({
+          personAName: session.person_a_name,
+          personBName: session.person_b_name,
+          partnerNickname: session.partner_nickname,
+          partnerRelationship: session.partner_relationship,
+        }),
         messages: [{ role: 'user', content: userPrompt }],
       }),
     })

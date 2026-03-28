@@ -64,7 +64,7 @@ type ScreenCopy = {
 const COPY: Record<WaitingVariant, ScreenCopy> = {
   awaiting_b: {
     headline: 'Your side is in.',
-    body: 'Now send them the link. When they\'re ready to share their side, Bond will bring it all together.',
+    body: 'Send them the link when you\'re ready. When they share their side, Bond will bring it all together.',
     note: 'You can close this tab and come back anytime.',
     color: { soft: C.greenSoft, dot: C.green },
   },

@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       .eq('step', 'resolution')
       .maybeSingle()
 
-    const resolutionText = resolutionData?.response ?? ''
+    const resolutionText = resolutionData?.response?.commitment ?? ''
 
     // ── Build prompt ──────────────────────────────────────────────────────────
     const userContent = [

@@ -238,7 +238,9 @@ export default function SessionPage() {
 
     if (!isFast && !isSlow) return
 
-    // Trigger synthesis generation when we detect synthesis_generating
+    // Trigger synthesis generation when we detect synthesis_generating.
+    // Fires for any token (not just Person B) — the route is idempotent so
+    // double-calls from both people being on the page simultaneously are safe.
     if (status === 'synthesis_generating' && myToken) {
       triggerSynthesis(myToken)
     }

@@ -126,6 +126,24 @@ RULES — follow every one:
 
 ${closingInstruction}`
 
+    // Set b_active on Person B's first message so Person A's WaitingScreen
+    // updates from "awaiting_b" to "b_active" — lets them know B is in.
+    // Only updates if session is still at awaiting_b (safe to call on every
+    // first message — won't overwrite later statuses).
+    if (userMessageCount === 1 && sessionId && token) {
+      const supabaseStatus = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      supabaseStatus
+        .from('sessions')
+        .update({ status: 'b_active' })
+        .eq('id', sessionId)
+        .eq('person_b_token', token)
+        .eq('status', 'awaiting_b')
+        .then(() => {}) // fire-and-forget — don't block the AI response
+    }
+
     // Anthropic API requires messages to start with 'user' role.
     // Filter out the first AI message (the opening question shown in UI)
     // since it's already captured in the system prompt above.
