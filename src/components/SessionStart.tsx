@@ -168,7 +168,7 @@ export default function SessionStart() {
         {phase === 'name' && (
           <div>
             {/* Bond mark */}
-            <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
               <span
                 style={{
                   fontFamily: "'Playfair Display', serif",
@@ -176,22 +176,26 @@ export default function SessionStart() {
                   fontWeight: 400,
                   color: C.ink,
                   display: 'block',
-                  marginBottom: '8px',
+                  marginBottom: '10px',
                 }}
               >
                 Bond
               </span>
               <span
                 style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '13px',
-                  color: C.dimmed,
+                  fontFamily: "'Playfair Display', serif",
+                  fontStyle: 'italic',
+                  fontSize: '14px',
+                  color: C.accent,
                   letterSpacing: '0.01em',
                 }}
               >
                 A private space for hard conversations.
               </span>
             </div>
+
+            {/* Masthead rule */}
+            <div style={{ height: '1px', backgroundColor: C.rule, marginBottom: '36px' }} />
 
             <h1
               style={{
