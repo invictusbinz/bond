@@ -70,7 +70,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
   b_active: {
     headline: 'They\'re sharing their side.',
-    body: 'They\'re sharing their side right now. You\'ll hear from Bond when it\'s time.',
+    body: 'Bond\'s with them now. You\'ll know when it\'s time.',
     note: 'You can close this tab and come back anytime.',
     color: { soft: C.blueSoft, dot: C.blue },
   },
