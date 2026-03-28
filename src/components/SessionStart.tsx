@@ -211,24 +211,12 @@ export default function SessionStart() {
                 fontSize: 'clamp(38px, 8vw, 52px)',
                 fontWeight: 400,
                 color: C.ink,
-                marginBottom: '10px',
+                marginBottom: '32px',
                 lineHeight: 1.1,
               }}
             >
               Hi
             </h1>
-
-            <p
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '15px',
-                color: C.muted,
-                lineHeight: 1.6,
-                marginBottom: '28px',
-              }}
-            >
-              Something brought you here. Let&apos;s start simply — what should Bond call you?
-            </p>
 
             <input
               ref={nameRef}
@@ -511,7 +499,7 @@ export default function SessionStart() {
         {/* ── Join a Session (always visible at bottom) ── */}
         <div
           style={{
-            marginTop: m ? '52px' : '72px',
+            marginTop: 'clamp(72px, 13vh, 104px)',
             paddingTop: '24px',
             borderTop: `1px solid ${C.rule}`,
           }}
