@@ -541,7 +541,7 @@ export default function AvailabilityCheckIn({
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
           >
-            Let {displayName} know I&apos;ve seen this
+            {`Let ${displayName} know I've seen this`}
           </button>
 
           {/* Muted quiet-return link */}
