@@ -165,14 +165,14 @@ export default function SessionStart() {
         input:focus { border-bottom-color: #c4622d !important; }
       `}</style>
 
-      <div style={{ width: '100%', maxWidth: '480px' }}>
+      <div style={{ width: '100%', maxWidth: '440px' }}>
 
         {/* ── MASTHEAD — shared across all phases ── */}
         <div
           style={{
             textAlign: 'center',
-            paddingBottom: '24px',
-            marginBottom: '28px',
+            paddingBottom: '28px',
+            marginBottom: '40px',
             borderBottom: `1px solid ${C.rule}`,
           }}
         >
@@ -245,8 +245,8 @@ export default function SessionStart() {
               onClick={handleNameSubmit}
               disabled={!personAName.trim()}
               style={{
-                marginTop: '28px',
-                padding: '13px 28px',
+                marginTop: '32px',
+                padding: '12px 28px',
                 borderRadius: '8px',
                 backgroundColor: personAName.trim() ? C.accent : C.rule,
                 color: personAName.trim() ? C.white : C.disabled,
@@ -256,7 +256,6 @@ export default function SessionStart() {
                 border: 'none',
                 cursor: personAName.trim() ? 'pointer' : 'not-allowed',
                 transition: 'background-color 0.15s',
-                width: '100%',
               }}
               onMouseEnter={(e) => { if (personAName.trim()) e.currentTarget.style.backgroundColor = C.accentHover }}
               onMouseLeave={(e) => { if (personAName.trim()) e.currentTarget.style.backgroundColor = C.accent }}
@@ -510,8 +509,8 @@ export default function SessionStart() {
         {/* ── Join a Session (always visible at bottom) ── */}
         <div
           style={{
-            marginTop: '28px',
-            paddingTop: '20px',
+            marginTop: '48px',
+            paddingTop: '24px',
             borderTop: `1px solid ${C.rule}`,
           }}
         >
