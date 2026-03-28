@@ -279,44 +279,24 @@ export default function AvailabilityCheckIn({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        paddingTop: m ? 'max(40px, 8vh)' : 'max(56px, 10vh)',
+        paddingTop: m ? '20px' : '28px',
         paddingBottom: '48px',
       }}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
 
-          {/* ── MASTHEAD ── */}
-          <div
-            style={{
-              textAlign: 'center',
-              paddingBottom: '28px',
-              marginBottom: '32px',
-              borderBottom: `1px solid ${C.rule}`,
-            }}
-          >
+          {/* ── MASTHEAD — minimal mark, wayfinding only ── */}
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <span
               style={{
                 fontFamily: "'Playfair Display', serif",
-                fontSize: m ? '26px' : '30px',
+                fontSize: '20px',
                 fontWeight: 400,
                 color: C.ink,
-                display: 'block',
-                marginBottom: '9px',
               }}
             >
               Bond
-            </span>
-            <span
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontStyle: 'italic',
-                fontSize: '14px',
-                color: C.accent,
-                letterSpacing: '0.01em',
-              }}
-            >
-              A private space for hard conversations.
             </span>
           </div>
 
@@ -327,44 +307,27 @@ export default function AvailabilityCheckIn({
               fontWeight: 400,
               color: C.ink,
               lineHeight: 1.3,
-              marginBottom: '24px',
+              marginBottom: '20px',
             }}
           >
             {`${displayName} reached out.`}
           </h1>
 
-          {/* Bond context */}
+          {/* Bond context — warm, direct, matches Person A's register */}
           <p
             style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '15px',
               color: '#4a4540',
               lineHeight: 1.8,
-              marginBottom: '16px',
+              marginBottom: '32px',
             }}
           >
-            Bond is a space where two people can share their sides of something — privately —
-            without it turning into an argument. I&apos;ll hear from both of you separately,
-            then put together something for you to read together.
+            Bond is a private space for two people to share their sides of something
+            honestly — without it turning into a fight. You each share separately.
+            Neither of you sees what the other said. Bond listens to both of you,
+            then puts something together for you to read together.
           </p>
-
-          {/* Honest privacy */}
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              color: C.muted,
-              lineHeight: 1.75,
-              marginBottom: '36px',
-              fontStyle: 'italic',
-            }}
-          >
-            Your exact words stay private. What Bond understands from what you share
-            — the feelings, what matters to you — shapes what it puts together for you both.
-          </p>
-
-          {/* Divider */}
-          <div style={{ height: '1px', backgroundColor: C.rule, marginBottom: '28px' }} />
 
           {/* Check-in question */}
           <p
@@ -377,11 +340,11 @@ export default function AvailabilityCheckIn({
               marginBottom: '20px',
             }}
           >
-            Before we go any further — how are you right now?
+            How are you feeling right now?
           </p>
 
           {/* 3 options */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
             {[
               {
                 key: 'ready' as const,
@@ -390,8 +353,8 @@ export default function AvailabilityCheckIn({
               },
               {
                 key: 'stressed' as const,
-                label: "I'm a bit stressed, but I can show up",
-                desc: "I'm carrying some weight, but I'm here.",
+                label: "I'm a bit stressed, but I'm here",
+                desc: "I'm carrying some weight, but I can do this.",
               },
               {
                 key: 'not_ready' as const,
@@ -445,6 +408,21 @@ export default function AvailabilityCheckIn({
               </button>
             ))}
           </div>
+
+          {/* Privacy note — moved below options, reassurance not friction */}
+          <p
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: C.muted,
+              lineHeight: 1.75,
+              marginBottom: '16px',
+              fontStyle: 'italic',
+            }}
+          >
+            Your exact words stay private. What Bond understands from what you share
+            — the feelings, what matters to you — shapes what it puts together for you both.
+          </p>
 
           <p
             style={{
