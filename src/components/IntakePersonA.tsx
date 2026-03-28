@@ -331,7 +331,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
                 if (selectedMode) e.currentTarget.style.backgroundColor = C.accent
               }}
             >
-              Start Session
+              Begin Session
             </button>
           </div>
         </div>
@@ -411,7 +411,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
               color: C.accent,
             }}
           >
-            Your Intake
+            Your side
           </span>
         </div>
       </div>

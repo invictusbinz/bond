@@ -92,7 +92,7 @@ export default function ClosingView({ sessionId, token }: Props) {
             Bond
           </span>
           <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: C.accent }}>
-            Session complete
+            Session closed
           </span>
         </div>
       </div>

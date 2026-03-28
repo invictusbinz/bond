@@ -147,7 +147,7 @@ export default function OrientationPersonB({ sessionId, onReady }: Props) {
 
             <IntentionBlock
               label="What this is"
-              text="Someone in your life started a Bond session — a space for two people to share their sides of something honestly, without it turning into a fight. Bond hears both of you privately, then writes something for you to read together."
+              text="Someone in your life reached out through Bond — a space where two people can share their sides honestly, without it turning into a fight. Bond hears both of you privately, then writes something for you to read together."
             />
 
             <IntentionBlock

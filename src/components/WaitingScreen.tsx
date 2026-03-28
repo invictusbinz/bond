@@ -70,7 +70,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
   b_active: {
     headline: 'They\'re sharing their side.',
-    body: 'The other person is in their session right now. You\'ll hear from Bond when it\'s time.',
+    body: 'They\'re sharing their side right now. You\'ll hear from Bond when it\'s time.',
     note: 'You can close this tab and come back anytime.',
     color: { soft: C.blueSoft, dot: C.blue },
   },
@@ -81,22 +81,22 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
   synthesis_revising: {
     headline: 'Bond is taking another look.',
-    body: 'You gave it important feedback. It\'s adjusting.',
+    body: 'You gave it important feedback. Taking another look now.',
     color: { soft: C.blueSoft, dot: C.blue },
   },
   partner_synthesis: {
     headline: 'Your thoughts are in.',
-    body: 'Waiting for the other person to read and share theirs.',
+    body: 'Waiting for them to read their side.',
     color: { soft: C.greenSoft, dot: C.green },
   },
   partner_checkpoint: {
     headline: 'You\'ve answered.',
-    body: 'Waiting for the other person to decide.',
+    body: 'Waiting for their answer.',
     color: { soft: C.blueSoft, dot: C.blue },
   },
   partner_resolution: {
     headline: 'Your reflection is in.',
-    body: 'Waiting for theirs.',
+    body: 'Waiting for their reflection.',
     color: { soft: C.greenSoft, dot: C.green },
   },
   closing_generating: {
@@ -107,7 +107,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   not_ready: {
     headline: 'Come back when you\'re ready.',
     body: 'This session will be here. Take the time you need.',
-    note: 'The other person has already shared their side and is waiting.',
+    note: 'They\u2019ve shared their side. No pressure \u2014 take what you need.',
     color: { soft: C.blueSoft, dot: C.blue },
   },
 }

@@ -249,7 +249,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
               fontSize: '20px',
               color: C.ink,
             }}>
-              Bond has what it needs. Waiting for them now.
+              Bond has what it needs. Waiting for them.
             </p>
           </div>
         )}

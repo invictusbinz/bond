@@ -313,7 +313,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
               color: C.accent,
             }}
           >
-            Your Intake
+            Your side
           </span>
         </div>
       </div>
@@ -353,7 +353,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '' }:
                   color: contextOpen ? C.accent : C.dimmed,
                 }}
               >
-                Their emotional state
+                What they&apos;re carrying
               </span>
               <span
                 style={{

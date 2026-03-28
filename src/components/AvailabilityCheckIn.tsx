@@ -40,8 +40,8 @@ const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 const OPTIONS: { key: AvailabilityOption; label: string; description: string }[] = [
   {
     key: 'ready',
-    label: "I'm good — ready to engage",
-    description: 'Present and open to this conversation.',
+    label: "I'm good — ready to be here",
+    description: 'Present and open.',
   },
   {
     key: 'stressed',
@@ -51,7 +51,7 @@ const OPTIONS: { key: AvailabilityOption; label: string; description: string }[]
   {
     key: 'not_now',
     label: "Right now's not a great time for me",
-    description: 'I need a day or two before I can engage.',
+    description: 'I need a day or two — this isn\u2019t the right moment.',
   },
   {
     key: 'need_time',
@@ -249,11 +249,11 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
           <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
-            <div style={eyebrow}>Availability Check-In</div>
+            <div style={eyebrow}>A moment</div>
 
             <h1 style={{ ...headline, fontSize: m ? '22px' : '26px' }}>How are you feeling right now?</h1>
             <p style={subtext}>
-              There&apos;s a Bond Session waiting for you. Before you go in, take a moment.
+              There&apos;s a session waiting for you. Before you go in, take a moment.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -346,12 +346,12 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
               lineHeight: 1.3,
             }}
           >
-            {isStressed ? 'Good to know.' : 'Good to have you here.'}
+            Good to have you here.
           </h2>
           <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75, marginBottom: onReady ? '32px' : '0' }}>
             {isStressed
               ? "It's okay to show up carrying some weight. We'll go at a pace that works. Take your time."
-              : "We'll take it at a reasonable pace. The session is ready whenever you are."}
+              : "We'll take it easy. The session is ready whenever you are."}
           </p>
 
           {/* Only show continue button if the parent has provided an onReady handler */}
@@ -389,7 +389,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
           <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
-            <div style={eyebrow}>Availability Check-In</div>
+            <div style={eyebrow}>A moment</div>
 
             <p style={{ ...aiResponse, fontSize: m ? '19px' : '22px' }}>That&apos;s okay to say.</p>
             <p style={bodyText}>
@@ -458,10 +458,10 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
               lineHeight: 1.3,
             }}
           >
-            Done.
+            Noted.
           </h2>
           <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
-            They&apos;ll know you&apos;ve seen this and will be in touch when you&apos;re ready.
+            They&apos;ll know you&apos;ve seen this.
             Come back whenever it feels right.
           </p>
         </div>
@@ -519,7 +519,7 @@ export default function AvailabilityCheckIn({ onReady, onNotReady }: Props = {})
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
           <div style={{ ...card, padding: m ? '24px 20px' : '40px' }}>
-            <div style={eyebrow}>Availability Check-In</div>
+            <div style={eyebrow}>A moment</div>
 
             <p style={{ ...aiResponse, fontSize: m ? '19px' : '22px' }}>Of course.</p>
             <p style={bodyText}>When would be a better time?</p>

@@ -407,7 +407,7 @@ export default function SynthesisView({ synthesis, sessionId, token, myRole, onR
                   marginBottom: '24px',
                   lineHeight: 1.6,
                 }}>
-                  Only you can see your answer. Be honest — Bond uses this to decide what comes next.
+                  Only you can see your answer. Bond uses this to understand what to do next.
                 </p>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>

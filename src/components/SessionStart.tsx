@@ -218,7 +218,7 @@ export default function SessionStart() {
                     marginBottom: '3px',
                   }}
                 >
-                  {m === 'heard' ? 'I need to feel heard' : 'We need to work something out'}
+                  {m === 'heard' ? 'I need to be heard' : 'We need to figure something out'}
                 </div>
                 <div
                   style={{
@@ -229,8 +229,8 @@ export default function SessionStart() {
                   }}
                 >
                   {m === 'heard'
-                    ? 'Something happened and I want my experience to be understood.'
-                    : "There's a real disagreement or decision we need to get through together."}
+                    ? 'I have something on my mind. I want to share it and feel understood.'
+                    : "There's a real decision or disagreement we need to work through together."}
                 </div>
               </button>
             ))}
