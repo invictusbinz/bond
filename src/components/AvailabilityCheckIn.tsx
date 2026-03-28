@@ -330,7 +330,7 @@ export default function AvailabilityCheckIn({
               marginBottom: '24px',
             }}
           >
-            {displayName} reached out.
+            {`${displayName} reached out.`}
           </h1>
 
           {/* Bond context */}

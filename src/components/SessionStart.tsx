@@ -390,7 +390,7 @@ export default function SessionStart() {
                   lineHeight: 1.7,
                 }}
               >
-                {partnerNickname} won&apos;t see which you chose — it just shapes how Bond listens to you.
+                {`${partnerNickname} won't see which you chose — it just shapes how Bond listens to you.`}
               </p>
             </div>
 
