@@ -175,9 +175,21 @@ export default function SessionStart() {
                   fontSize: m ? '26px' : '30px',
                   fontWeight: 400,
                   color: C.ink,
+                  display: 'block',
+                  marginBottom: '8px',
                 }}
               >
                 Bond
+              </span>
+              <span
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '13px',
+                  color: C.dimmed,
+                  letterSpacing: '0.01em',
+                }}
+              >
+                A private space for hard conversations.
               </span>
             </div>
 
@@ -187,12 +199,24 @@ export default function SessionStart() {
                 fontSize: m ? '36px' : '44px',
                 fontWeight: 400,
                 color: C.ink,
-                marginBottom: '32px',
+                marginBottom: '10px',
                 lineHeight: 1.15,
               }}
             >
               Hi
             </h1>
+
+            <p
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '15px',
+                color: C.muted,
+                lineHeight: 1.6,
+                marginBottom: '28px',
+              }}
+            >
+              Something brought you here. Let&apos;s start simply — what should Bond call you?
+            </p>
 
             <input
               ref={nameRef}
