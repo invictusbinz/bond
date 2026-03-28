@@ -208,7 +208,7 @@ export default function SessionStart() {
             <h1
               style={{
                 fontFamily: "'Playfair Display', serif",
-                fontSize: m ? '40px' : '52px',
+                fontSize: 'clamp(38px, 8vw, 52px)',
                 fontWeight: 400,
                 color: C.ink,
                 marginBottom: '10px',
@@ -247,6 +247,7 @@ export default function SessionStart() {
               style={{
                 marginTop: '28px',
                 padding: '13px 28px',
+                minHeight: '44px',
                 borderRadius: '8px',
                 backgroundColor: personAName.trim() ? C.accent : C.rule,
                 color: personAName.trim() ? C.white : C.disabled,
@@ -510,7 +511,7 @@ export default function SessionStart() {
         {/* ── Join a Session (always visible at bottom) ── */}
         <div
           style={{
-            marginTop: '72px',
+            marginTop: m ? '52px' : '72px',
             paddingTop: '24px',
             borderTop: `1px solid ${C.rule}`,
           }}

@@ -203,7 +203,7 @@ export default function AvailabilityCheckIn({
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: m ? '40px' : '52px',
+              fontSize: 'clamp(38px, 8vw, 52px)',
               fontWeight: 400,
               color: C.ink,
               marginBottom: '10px',
@@ -254,6 +254,7 @@ export default function AvailabilityCheckIn({
             style={{
               marginTop: '28px',
               padding: '13px 28px',
+              minHeight: '44px',
               borderRadius: '8px',
               backgroundColor: personBName.trim() && !saving ? C.accent : C.rule,
               color: personBName.trim() && !saving ? C.white : C.disabled,
