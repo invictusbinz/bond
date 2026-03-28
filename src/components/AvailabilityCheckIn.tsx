@@ -274,24 +274,51 @@ export default function AvailabilityCheckIn({
     const displayName = personAName || 'Someone'
 
     return (
-      <div style={{ ...pageWrap, alignItems: 'flex-start', paddingTop: m ? '48px' : '64px' }}>
+      <div style={{
+        ...pageWrap,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: m ? 'max(40px, 8vh)' : 'max(56px, 10vh)',
+        paddingBottom: '48px',
+      }}>
         <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
 
-          {/* Who reached out */}
-          <p
+          {/* ── MASTHEAD ── */}
+          <div
             style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: '11px',
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: C.accent,
-              marginBottom: '12px',
+              textAlign: 'center',
+              paddingBottom: '28px',
+              marginBottom: '32px',
+              borderBottom: `1px solid ${C.rule}`,
             }}
           >
-            A moment
-          </p>
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: m ? '26px' : '30px',
+                fontWeight: 400,
+                color: C.ink,
+                display: 'block',
+                marginBottom: '9px',
+              }}
+            >
+              Bond
+            </span>
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontStyle: 'italic',
+                fontSize: '14px',
+                color: C.accent,
+                letterSpacing: '0.01em',
+              }}
+            >
+              A private space for hard conversations.
+            </span>
+          </div>
 
           <h1
             style={{
