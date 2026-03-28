@@ -339,7 +339,7 @@ export default function AvailabilityCheckIn({
               {
                 key: 'not_ready' as const,
                 label: "Right now's not a great time",
-                desc: 'This will be here when I'm ready.',
+                desc: "This will be here when I'm ready.",
               },
             ].map((opt) => (
               <button
