@@ -36,6 +36,7 @@ type Props = {
   inviteUrl?: string       // shown for awaiting_b variant
   joinCode?: string        // shown for awaiting_b variant
   onReadyNow?: () => void  // shown for not_ready variant — lets B restart the flow
+  partnerName?: string     // when known, personalises copy ("Waiting for Yash" vs "Waiting for them")
 }
 
 const C = {
@@ -112,10 +113,33 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
 }
 
-export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow }: Props) {
-  const copy = COPY[variant]
-  const [copied, setCopied] = useState(false)
+export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow, partnerName }: Props) {
+  const base = COPY[variant]
   const m = useIsMobile()
+
+  // Personalise copy with partner's name where relevant.
+  // Falls back to the static strings when no name is known.
+  const copy: ScreenCopy = {
+    ...base,
+    headline:
+      variant === 'b_active' && partnerName
+        ? `${partnerName} is sharing their side.`
+        : base.headline,
+    body:
+      variant === 'partner_synthesis' && partnerName
+        ? `Waiting for ${partnerName} to read their side.`
+        : variant === 'partner_checkpoint' && partnerName
+        ? `Waiting for ${partnerName}'s answer.`
+        : variant === 'partner_resolution' && partnerName
+        ? `Waiting for ${partnerName}'s reflection.`
+        : base.body,
+    note:
+      variant === 'not_ready' && partnerName
+        ? `${partnerName} has shared their side. No pressure — take what you need.`
+        : base.note,
+  }
+
+  const [copied, setCopied] = useState(false)
 
   function handleCopy() {
     if (!inviteUrl) return

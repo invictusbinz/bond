@@ -353,7 +353,7 @@ export default function SessionPage() {
 
     // B has joined and is doing their intake
     if (status === 'b_active') {
-      return <WaitingScreen variant="b_active" />
+      return <WaitingScreen variant="b_active" partnerName={session.partner_nickname || session.person_b_name || undefined} />
     }
 
     // Both done — synthesis is being generated
@@ -377,7 +377,7 @@ export default function SessionPage() {
 
     // A responded, waiting for B
     if (status === 'a_responded_synthesis') {
-      return <WaitingScreen variant="partner_synthesis" />
+      return <WaitingScreen variant="partner_synthesis" partnerName={session.partner_nickname || session.person_b_name || undefined} />
     }
 
     // B responded first — A still needs to read and respond
@@ -432,7 +432,7 @@ export default function SessionPage() {
     }
 
     if (status === 'a_responded_checkpoint') {
-      return <WaitingScreen variant="partner_checkpoint" />
+      return <WaitingScreen variant="partner_checkpoint" partnerName={session.partner_nickname || session.person_b_name || undefined} />
     }
 
     // B responded checkpoint first — A still needs to answer.
@@ -474,7 +474,7 @@ export default function SessionPage() {
     }
 
     if (status === 'a_responded_resolution') {
-      return <WaitingScreen variant="partner_resolution" />
+      return <WaitingScreen variant="partner_resolution" partnerName={session.partner_nickname || session.person_b_name || undefined} />
     }
 
     // B responded resolution first — A still needs to answer
@@ -524,7 +524,7 @@ export default function SessionPage() {
     // B's pre-intake flow: checkin → orientation → intake
     // Only shown if B hasn't completed intake yet.
     if (!bAlreadyDoneIntake && personBFlow === 'not_ready') {
-      return <WaitingScreen variant="not_ready" onReadyNow={() => setPersonBFlow('orientation')} />
+      return <WaitingScreen variant="not_ready" onReadyNow={() => setPersonBFlow('orientation')} partnerName={session.person_a_name || undefined} />
     }
 
     if (!bAlreadyDoneIntake && personBFlow === 'orientation') {
@@ -609,7 +609,7 @@ export default function SessionPage() {
 
     // B responded, waiting for A
     if (status === 'b_responded_synthesis') {
-      return <WaitingScreen variant="partner_synthesis" />
+      return <WaitingScreen variant="partner_synthesis" partnerName={session.person_a_name || undefined} />
     }
 
     // A responded first — B still needs to read and respond
@@ -663,7 +663,7 @@ export default function SessionPage() {
     }
 
     if (status === 'b_responded_checkpoint') {
-      return <WaitingScreen variant="partner_checkpoint" />
+      return <WaitingScreen variant="partner_checkpoint" partnerName={session.person_a_name || undefined} />
     }
 
     // A responded checkpoint first — B still needs to answer.
@@ -705,7 +705,7 @@ export default function SessionPage() {
     }
 
     if (status === 'b_responded_resolution') {
-      return <WaitingScreen variant="partner_resolution" />
+      return <WaitingScreen variant="partner_resolution" partnerName={session.person_a_name || undefined} />
     }
 
     // A responded resolution first — B still needs to answer
