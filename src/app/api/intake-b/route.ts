@@ -11,7 +11,7 @@ type Message = { role: 'ai' | 'user'; text: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, userMessageCount, partnerSummary, sessionId, token, availabilityState, forceClose } = await request.json()
+    const { messages, userMessageCount, partnerSummary, sessionId, token, availabilityState, forceClose, personBName, personAName } = await request.json()
 
     // Force-close path: user clicked "I've shared enough"
     // Skip AI generation entirely, save what we have, advance status.
@@ -98,8 +98,14 @@ export async function POST(request: NextRequest) {
       ? `\n[AVAILABILITY NOTE: Person B indicated they are carrying some stress right now. Open with extra warmth and patience. Keep your questions shorter. Check in gently about pacing if they seem overwhelmed. Don't rush.]\n`
       : ''
 
+    // Name context — helps Bond address Person B naturally and reference their partner.
+    // Use names sparingly — once or twice at most. Never robotically.
+    const nameContext = (personBName || personAName)
+      ? `\n[NAME CONTEXT: ${personBName ? `You are speaking with ${personBName}.` : ''} ${personAName ? `Their partner (Person A) is ${personAName}.` : ''} Use names naturally when it feels warm — never more than once or twice. Never address Person B by name more than once in the whole conversation.]\n`
+      : ''
+
     const systemPrompt = `You are Bond — a thoughtful, caring presence. Not a professional, not a system. You ask real questions and actually listen. Your job is to help this person say what's on their mind.
-${partnerContext}${availabilityContext}
+${nameContext}${partnerContext}${availabilityContext}
 Person B has already read a neutral summary of what Person A is feeling — they are not coming in completely blind. But they have not seen Person A's raw words. Do not add to what they know about Person A's side.
 
 You opened the conversation by asking: "I've heard their side. Now I want to hear yours — not as a rebuttal, but your own experience. What's your side of this?"

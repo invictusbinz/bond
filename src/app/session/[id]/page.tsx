@@ -547,6 +547,8 @@ export default function SessionPage() {
           token={myToken}
           partnerSummary={partnerSummary}
           availabilityState={availabilityState}
+          personBName={session.person_b_name || undefined}
+          personAName={session.person_a_name || undefined}
           onComplete={async () => {
             const updated = await fetchSession()
             if (updated) setSession(updated)
@@ -565,6 +567,8 @@ export default function SessionPage() {
           token={myToken}
           partnerSummary=""
           availabilityState={availabilityState}
+          personBName={session.person_b_name || undefined}
+          personAName={session.person_a_name || undefined}
           onComplete={async () => {
             const updated = await fetchSession()
             if (updated) setSession(updated)

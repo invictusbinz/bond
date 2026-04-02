@@ -44,6 +44,10 @@ type Props = {
   // Availability state from the check-in. Injected into the intake-b system prompt
   // so the AI adjusts pacing and tone for stressed users.
   availabilityState?: 'good' | 'stressed'
+  // Names — passed to intake-b API so Bond can address Person B directly
+  // and reference Person A by name during the conversation.
+  personBName?: string   // Person B's own name (collected on AvailabilityCheckIn)
+  personAName?: string   // Person A's name (collected at session creation)
   // Called when intake is complete and person taps "Got it".
   // Session page re-fetches status and routes to WaitingScreen synthesis_generating.
   onComplete?: () => void
@@ -51,7 +55,7 @@ type Props = {
 
 const storageKey = (id?: string) => id ? `bond_intake_b_${id}` : null
 
-export default function IntakePersonB({ sessionId, token, partnerSummary = '', availabilityState = 'good', onComplete }: Props) {
+export default function IntakePersonB({ sessionId, token, partnerSummary = '', availabilityState = 'good', personBName, personAName, onComplete }: Props) {
   const m = useIsMobile()
   // Restore from localStorage on mount — so refreshing mid-intake doesn't lose progress
   const savedState = (() => {
@@ -105,7 +109,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
       const res = await fetch('/api/intake-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, userMessageCount, partnerSummary, sessionId, token, availabilityState, forceClose: true }),
+        body: JSON.stringify({ messages, userMessageCount, partnerSummary, sessionId, token, availabilityState, forceClose: true, personBName, personAName }),
       })
       if (!res.ok) throw new Error('API error')
       const data = await res.json()
@@ -144,7 +148,7 @@ export default function IntakePersonB({ sessionId, token, partnerSummary = '', a
       const res = await fetch('/api/intake-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary, sessionId, token, availabilityState }),
+        body: JSON.stringify({ messages: newMessages, userMessageCount: newCount, partnerSummary, sessionId, token, availabilityState, personBName, personAName }),
       })
 
       if (!res.ok) throw new Error('API error')
