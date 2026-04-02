@@ -23,7 +23,6 @@ const C = {
   summaryBg: '#f3ede4',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 type Props = {
   sessionId?: string
@@ -67,8 +66,6 @@ export default function OrientationPersonB({ sessionId, onReady, onNotReady }: P
       }}
     >
       <style>{`
-        ${FONTS}
-        body { font-family: 'DM Sans', sans-serif; }
       `}</style>
 
       {/* ── Header ── */}
@@ -90,7 +87,7 @@ export default function OrientationPersonB({ sessionId, onReady, onNotReady }: P
         >
           <span
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '18px',
               fontWeight: 400,
               color: C.ink,
@@ -100,7 +97,7 @@ export default function OrientationPersonB({ sessionId, onReady, onNotReady }: P
           </span>
           <span
             style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '10px',
               letterSpacing: '0.2em',
               textTransform: 'uppercase',
@@ -128,7 +125,7 @@ export default function OrientationPersonB({ sessionId, onReady, onNotReady }: P
           {/* Summary label */}
           <p
             style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '10px',
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
@@ -188,7 +185,7 @@ export default function OrientationPersonB({ sessionId, onReady, onNotReady }: P
             ) : (
               <p
                 style={{
-                  fontFamily: "'Playfair Display', serif",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: m ? '15px' : '17px',
                   fontWeight: 400,
                   color: C.ink,

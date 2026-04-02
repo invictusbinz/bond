@@ -31,7 +31,6 @@ const C = {
   disabled: '#a09890',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -161,8 +160,6 @@ export default function SessionStart() {
       }}
     >
       <style>{`
-        ${FONTS}
-        body { font-family: 'DM Sans', sans-serif; }
         input::placeholder { color: #b5aea6; }
         input:focus { border-bottom-color: #c4622d !important; }
       `}</style>
@@ -180,7 +177,7 @@ export default function SessionStart() {
         >
           <span
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: phase === 'name' ? (m ? '26px' : '30px') : '20px',
               fontWeight: 400,
               color: C.ink,
@@ -193,7 +190,7 @@ export default function SessionStart() {
           {phase === 'name' && (
             <span
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontStyle: 'italic',
                 fontSize: '14px',
                 color: C.accent,
@@ -211,7 +208,7 @@ export default function SessionStart() {
 
             <h1
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: 'clamp(38px, 8vw, 52px)',
                 fontWeight: 400,
                 color: C.ink,
@@ -264,7 +261,7 @@ export default function SessionStart() {
           <div>
             <p
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: m ? '22px' : '26px',
                 fontWeight: 400,
                 color: C.ink,
@@ -294,7 +291,7 @@ export default function SessionStart() {
             <div style={{ marginBottom: '12px' }}>
               <label
                 style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: '10px',
                   letterSpacing: '0.18em',
                   textTransform: 'uppercase',
@@ -379,7 +376,7 @@ export default function SessionStart() {
             <div style={{ marginBottom: '32px' }}>
               <h2
                 style={{
-                  fontFamily: "'Playfair Display', serif",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: m ? '22px' : '26px',
                   fontWeight: 400,
                   color: C.ink,
@@ -516,7 +513,7 @@ export default function SessionStart() {
         >
           <p
             style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '10px',
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
@@ -544,7 +541,7 @@ export default function SessionStart() {
                 padding: '10px 14px',
                 borderRadius: '8px',
                 border: joinError ? `1.5px solid ${C.accent}` : `1px solid ${C.rule}`,
-                fontFamily: "'DM Mono', monospace",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: '15px',
                 letterSpacing: '0.12em',
                 color: C.ink,

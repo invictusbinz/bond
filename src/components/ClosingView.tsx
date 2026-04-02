@@ -22,7 +22,6 @@ const C = {
   dimmed: '#8a8480',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 type Props = {
   sessionId: string
@@ -70,8 +69,6 @@ export default function ClosingView({ sessionId, token }: Props) {
       }}
     >
       <style>{`
-        ${FONTS}
-        body { font-family: 'DM Sans', sans-serif; }
         @keyframes dot-pulse {
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
           40%            { opacity: 1;   transform: scale(1.1); }
@@ -88,10 +85,10 @@ export default function ClosingView({ sessionId, token }: Props) {
         }}
       >
         <div style={{ maxWidth: '560px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '18px', fontWeight: 400, color: C.ink }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '18px', fontWeight: 400, color: C.ink }}>
             Bond
           </span>
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: C.accent }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '10px', letterSpacing: '0.2em', textTransform: 'uppercase', color: C.accent }}>
             Session closed
           </span>
         </div>
@@ -104,7 +101,7 @@ export default function ClosingView({ sessionId, token }: Props) {
           {/* ── Closing message ── */}
           <p
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: m ? '26px' : '30px',
               fontWeight: 400,
               color: C.ink,
@@ -137,7 +134,7 @@ export default function ClosingView({ sessionId, token }: Props) {
             <div>
               <p
                 style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: '10px',
                   letterSpacing: '0.15em',
                   textTransform: 'uppercase',
@@ -185,7 +182,7 @@ export default function ClosingView({ sessionId, token }: Props) {
             <div>
               <p
                 style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: '10px',
                   letterSpacing: '0.15em',
                   textTransform: 'uppercase',
@@ -220,7 +217,7 @@ export default function ClosingView({ sessionId, token }: Props) {
             <div>
               <p
                 style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: '10px',
                   letterSpacing: '0.15em',
                   textTransform: 'uppercase',

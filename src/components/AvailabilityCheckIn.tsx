@@ -44,7 +44,6 @@ const C = {
   green: '#3d6b4f',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -159,8 +158,6 @@ export default function AvailabilityCheckIn({
         paddingBottom: '48px',
       }}>
         <style>{`
-          ${FONTS}
-          body { font-family: 'DM Sans', sans-serif; }
           input::placeholder { color: #b5aea6; }
           input:focus { border-bottom-color: ${C.accent} !important; }
         `}</style>
@@ -178,7 +175,7 @@ export default function AvailabilityCheckIn({
           >
             <span
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: m ? '26px' : '30px',
                 fontWeight: 400,
                 color: C.ink,
@@ -190,7 +187,7 @@ export default function AvailabilityCheckIn({
             </span>
             <span
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontStyle: 'italic',
                 fontSize: '14px',
                 color: C.accent,
@@ -203,7 +200,7 @@ export default function AvailabilityCheckIn({
 
           <h1
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: 'clamp(38px, 8vw, 52px)',
               fontWeight: 400,
               color: C.ink,
@@ -282,7 +279,8 @@ export default function AvailabilityCheckIn({
         paddingTop: m ? '20px' : '28px',
         paddingBottom: '48px',
       }}>
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+        <style>{`
+`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
 
@@ -290,7 +288,7 @@ export default function AvailabilityCheckIn({
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
             <span
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: '20px',
                 fontWeight: 400,
                 color: C.ink,
@@ -302,7 +300,7 @@ export default function AvailabilityCheckIn({
 
           <h1
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: m ? '24px' : '28px',
               fontWeight: 400,
               color: C.ink,
@@ -332,7 +330,7 @@ export default function AvailabilityCheckIn({
           {/* Check-in question */}
           <p
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: m ? '18px' : '20px',
               fontWeight: 400,
               color: C.ink,
@@ -445,7 +443,6 @@ export default function AvailabilityCheckIn({
     const isStressed = selectedOption === 'stressed'
     return (
       <div style={{ ...pageWrap }}>
-        <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
             style={{
@@ -465,7 +462,7 @@ export default function AvailabilityCheckIn({
           </div>
           <h2
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '26px',
               fontWeight: 400,
               color: C.ink,
@@ -491,12 +488,13 @@ export default function AvailabilityCheckIn({
 
     return (
       <div style={pageWrap}>
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+        <style>{`
+`}</style>
 
         <div style={card}>
           <p
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: m ? '20px' : '24px',
               fontWeight: 400,
               color: C.ink,
@@ -622,7 +620,6 @@ export default function AvailabilityCheckIn({
   if (phase === 'not_ready_done') {
     return (
       <div style={pageWrap}>
-        <style>{FONTS}</style>
         <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
           <div
             style={{
@@ -642,7 +639,7 @@ export default function AvailabilityCheckIn({
           </div>
           <h2
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '26px',
               fontWeight: 400,
               color: C.ink,

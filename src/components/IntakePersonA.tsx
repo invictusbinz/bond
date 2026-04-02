@@ -29,7 +29,6 @@ const C = {
   green: '#3d6b4f',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 type Props = {
   // When coming from a real session (via /session/[id]), these are provided.
@@ -225,7 +224,8 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
           padding: '24px',
         }}
       >
-        <style>{`${FONTS} body { font-family: 'DM Sans', sans-serif; }`}</style>
+        <style>{`
+`}</style>
 
         <div style={{ width: '100%', maxWidth: '440px' }}>
           <div
@@ -239,7 +239,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
             {/* Eyebrow */}
             <div
               style={{
-                fontFamily: "'DM Mono', monospace",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: '10px',
                 letterSpacing: '0.2em',
                 textTransform: 'uppercase',
@@ -253,7 +253,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
             {/* Headline */}
             <h1
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: '26px',
                 fontWeight: 400,
                 color: C.ink,
@@ -365,8 +365,6 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
       }}
     >
       <style>{`
-        ${FONTS}
-        body { font-family: 'DM Sans', sans-serif; }
         textarea { outline: none; }
         textarea::placeholder { color: #b0a89e; }
         @keyframes dot-pulse {
@@ -401,7 +399,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
         >
           <span
             style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '18px',
               fontWeight: 400,
               color: C.ink,
@@ -411,7 +409,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
           </span>
           <span
             style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '10px',
               letterSpacing: '0.2em',
               textTransform: 'uppercase',
@@ -475,7 +473,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
             <div style={{ marginBottom: '36px' }}>
               <p
                 style={{
-                  fontFamily: "'Playfair Display', serif",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: historyMessages.length === 0 ? (m ? '20px' : '24px') : (m ? '17px' : '20px'),
                   fontWeight: 400,
                   color: C.ink,
@@ -621,7 +619,7 @@ export default function IntakePersonA({ sessionId, token, mode: modeProp, invite
                 <span
                   className="cmd-hint"
                   style={{
-                    fontFamily: "'DM Mono', monospace",
+                    fontFamily: "'DM Sans', sans-serif",
                     fontSize: '10px',
                     color: '#c0b8b0',
                     letterSpacing: '0.1em',

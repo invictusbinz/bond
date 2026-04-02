@@ -37,7 +37,6 @@ const C = {
   blue: '#3a5f7d',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 export default function CheckpointView({ sessionId, token, myRole, onResponded }: Props) {
   const m = useIsMobile()
@@ -91,9 +90,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
       }}
     >
       <style>{`
-        ${FONTS}
-        * { box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; margin: 0; }
+                * { box-sizing: border-box; }
         button:hover { opacity: 0.85; }
       `}</style>
 
@@ -101,7 +98,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
 
         {/* Eyebrow */}
         <p style={{
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: '11px',
           letterSpacing: '0.12em',
           color: C.dimmed,
@@ -113,7 +110,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
 
         {/* Headline */}
         <h1 style={{
-          fontFamily: "'Playfair Display', serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: m ? '26px' : '30px',
           fontWeight: 400,
           color: C.ink,
@@ -147,7 +144,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
         {!submitted ? (
           <div>
             <p style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '22px',
               fontWeight: 400,
               fontStyle: 'italic',
@@ -265,7 +262,7 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
             borderRadius: '8px',
           }}>
             <p style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '20px',
               color: C.ink,
             }}>

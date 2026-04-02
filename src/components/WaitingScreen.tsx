@@ -53,7 +53,6 @@ const C = {
   blue: '#3a5f7d',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 type ScreenCopy = {
   headline: string
@@ -180,9 +179,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
       }}
     >
       <style>{`
-        ${FONTS}
-        * { box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; margin: 0; }
+                * { box-sizing: border-box; }
         @keyframes breathe {
           0%, 100% { opacity: 0.4; transform: scale(0.95); }
           50%       { opacity: 1;   transform: scale(1.05); }
@@ -220,7 +217,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
         {/* Headline */}
         <h2
           style={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: "'DM Sans', sans-serif",
             fontSize: '26px',
             fontWeight: 400,
             color: C.ink,
@@ -257,7 +254,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
             }}
           >
             <p style={{
-              fontFamily: "'DM Mono', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '10px',
               letterSpacing: '0.1em',
               color: C.dimmed,
@@ -268,7 +265,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
             </p>
             <p
               style={{
-                fontFamily: "'DM Mono', monospace",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: '12px',
                 color: C.ink,
                 wordBreak: 'break-all',
@@ -287,7 +284,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
                 marginBottom: '14px',
               }}>
                 Or share the join code: <span style={{
-                  fontFamily: "'DM Mono', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: '15px',
                   color: C.ink,
                   letterSpacing: '0.1em',

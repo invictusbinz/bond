@@ -31,7 +31,6 @@ const C = {
   softAmber: '#f5ede0',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 export default function ResolutionView({ sessionId, token, myRole, onResponded }: Props) {
   const m = useIsMobile()
@@ -89,9 +88,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
       }}
     >
       <style>{`
-        ${FONTS}
-        * { box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; margin: 0; }
+                * { box-sizing: border-box; }
         textarea:focus { outline: none; }
         @media (max-width: 640px) { .cmd-hint { display: none; } }
       `}</style>
@@ -100,7 +97,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
 
         {/* Eyebrow */}
         <p style={{
-          fontFamily: "'DM Mono', monospace",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: '11px',
           letterSpacing: '0.12em',
           color: C.dimmed,
@@ -112,7 +109,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
 
         {/* Heading */}
         <h1 style={{
-          fontFamily: "'Playfair Display', serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: m ? '26px' : '30px',
           fontWeight: 400,
           color: C.ink,
@@ -144,7 +141,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
             }}
           >
             <p style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '22px',
               fontWeight: 400,
               fontStyle: 'italic',
@@ -198,7 +195,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
 
             <div style={{ display: 'flex', alignItems: m ? 'stretch' : 'center', flexDirection: m ? 'column' : 'row', justifyContent: 'space-between', gap: m ? '12px' : '0' }}>
               <span className="cmd-hint" style={{
-                fontFamily: "'DM Mono', monospace",
+                fontFamily: "'DM Sans', sans-serif",
                 fontSize: '10px',
                 color: '#c0b8b0',
                 letterSpacing: '0.1em',
@@ -245,7 +242,7 @@ export default function ResolutionView({ sessionId, token, myRole, onResponded }
             textAlign: 'center',
           }}>
             <p style={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: '20px',
               color: C.ink,
             }}>

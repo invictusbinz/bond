@@ -110,7 +110,6 @@ const C = {
   muted: '#6b6560',
 }
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -283,7 +282,6 @@ export default function SessionPage() {
   if (loadState === 'loading') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.paper }}>
-        <style>{FONTS}</style>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: C.muted }}>Loading…</p>
       </div>
     )
@@ -506,7 +504,6 @@ export default function SessionPage() {
     // Fallback loading (e.g. synthesis_ready but synthesis content not yet fetched)
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.paper }}>
-        <style>{FONTS}</style>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: C.muted }}>One moment…</p>
       </div>
     )
@@ -731,7 +728,6 @@ export default function SessionPage() {
 
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: C.paper }}>
-        <style>{FONTS}</style>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: C.muted }}>One moment…</p>
       </div>
     )
@@ -745,9 +741,8 @@ export default function SessionPage() {
 function ErrorScreen({ message }: { message: string }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
-      <style>{FONTS}</style>
       <div style={{ maxWidth: '400px', textAlign: 'center' }}>
-        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '22px', color: '#1a1714', marginBottom: '12px' }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '22px', color: '#1a1714', marginBottom: '12px' }}>
           Something's off.
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: '#6b6560', lineHeight: 1.7 }}>
@@ -763,9 +758,8 @@ function ErrorScreen({ message }: { message: string }) {
 function CheckpointSplitScreen() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
-      <style>{FONTS}</style>
       <div style={{ maxWidth: '440px' }}>
-        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
           You&apos;re in different places right now.
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
@@ -781,9 +775,8 @@ function CheckpointSplitScreen() {
 function ClosedScreen() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
-      <style>{FONTS}</style>
       <div style={{ maxWidth: '440px' }}>
-        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
           This is as far as Bond can take you right now.
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
