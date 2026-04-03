@@ -1,7 +1,12 @@
 // POST /api/debrief
 // Called when a person taps "See your private reflection" on the ClosingScreen.
-// Reads their intake, their synthesis view, and their resolution commitment,
-// then generates a private per-person coaching reflection via Claude.
+// Reads their intake, their synthesis view, and — depending on which path the session
+// took — either their Phase 2 resolution exchange messages + Resolution Statement,
+// or their Phase 1 private commitment. Then generates a per-person coaching reflection.
+//
+// Phase 2 (resolution exchange): includes what this person said in the exchange and
+// the Resolution Statement. Partner messages are intentionally excluded — stays private.
+// Phase 1 (old commitment step): includes their private "one thing I'll try" answer.
 //
 // Private: Bond generates a different debrief for each person.
 // Nothing is shared with the partner.
@@ -23,9 +28,11 @@ A two-person session has just closed. You are writing a private, personal debrie
 You have access to:
 - What this person shared during their intake (their raw, private experience)
 - The synthesis Bond wrote specifically for them during the session
-- The commitment or intention they shared in their resolution step
+- Depending on how far the session went, one of the following:
+    a) What they said in the shared resolution exchange, and the Resolution Statement both people agreed to (if the session went through Phase 2 — a Bond-mediated conversation)
+    b) The private commitment or intention they shared in their resolution step (if the session ended at Phase 1)
 
-Your task is to write 3 short paragraphs of private coaching — not a summary, not a repeat of the synthesis. This is Bond reflecting back what it noticed about this person specifically: how they show up in hard conversations, what their patterns might be, what's worth carrying forward.
+Your task is to write 3 short paragraphs of private coaching — not a summary, not a repeat of the synthesis. This is Bond reflecting back what it noticed about this person specifically: how they show up in hard conversations, what their patterns might be, what's worth carrying forward. If a resolution exchange happened, draw on how this person showed up in that conversation — what they chose to say, how they engaged, what they reached for.
 
 STRUCTURE (3 paragraphs):
 
@@ -111,7 +118,9 @@ export async function POST(request: NextRequest) {
       ? (person === 'a' ? synthesisContent.a_view : synthesisContent.b_view) ?? ''
       : ''
 
-    // ── Fetch their resolution commitment ─────────────────────────────────────
+    // ── Fetch their resolution commitment (Phase 1 path) ─────────────────────
+    // Only populated for sessions that went through the old private commitment step.
+    // For Phase 2 sessions (resolution exchange), this will be empty — handled below.
     const { data: resolutionData } = await supabase
       .from('session_responses')
       .select('response')
@@ -122,11 +131,42 @@ export async function POST(request: NextRequest) {
 
     const resolutionText = resolutionData?.response?.commitment ?? ''
 
+    // ── Fetch resolution exchange messages (Phase 2 path) ─────────────────────
+    // Only present if the session went through the Bond-mediated resolution exchange.
+    // We pull:
+    //   - this person's own messages only (partner messages stay private)
+    //   - the Resolution Statement (is_resolution_statement: true)
+    const { data: resolutionMessages } = await supabase
+      .from('resolution_messages')
+      .select('person, content, is_resolution_statement')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true })
+
+    // This person's messages from the exchange (what they actually said)
+    const myExchangeMessages = (resolutionMessages || [])
+      .filter(m => m.person === person && !m.is_resolution_statement)
+      .map(m => m.content)
+      .join('\n\n')
+
+    // The Resolution Statement both people agreed to
+    const resolutionStatement = (resolutionMessages || [])
+      .find(m => m.is_resolution_statement)?.content ?? ''
+
     // ── Build prompt ──────────────────────────────────────────────────────────
     const userContent = [
       `WHAT THIS PERSON SHARED DURING THEIR INTAKE:\n${intakeUserLines || '(No intake data available)'}`,
       myView ? `WHAT BOND SAW IN THEM (their synthesis view):\n${myView}` : '',
-      resolutionText ? `WHAT THEY COMMITTED TO IN THE RESOLUTION STEP:\n${resolutionText}` : '',
+      // Phase 2: resolution exchange context (preferred — richer than Phase 1 commitment)
+      myExchangeMessages
+        ? `WHAT THIS PERSON SAID IN THE RESOLUTION EXCHANGE:\n${myExchangeMessages}`
+        : '',
+      resolutionStatement
+        ? `THE RESOLUTION STATEMENT BOTH PEOPLE AGREED TO:\n${resolutionStatement}`
+        : '',
+      // Phase 1 fallback: private commitment (only if no exchange happened)
+      (!myExchangeMessages && resolutionText)
+        ? `WHAT THEY COMMITTED TO IN THE RESOLUTION STEP:\n${resolutionText}`
+        : '',
       `Write their private debrief now.`,
     ].filter(Boolean).join('\n\n---\n\n')
 
