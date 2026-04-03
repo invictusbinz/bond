@@ -9,7 +9,8 @@
 // Then it hands off to the right component for that moment in the flow.
 //
 // POLLING: For short AI-processing waits (synthesis_generating, synthesis_revising,
-// closing_generating) the page re-fetches the session every 4 seconds automatically.
+// closing_generating, resolution_exchange_opening, resolution_exchange_bond_turn) the page
+// re-fetches the session every 4 seconds automatically.
 // For longer human waits (awaiting_b, b_active, partner responded states), it polls
 // every 10 seconds — enough to detect changes without hammering the server.
 // For static states (not_ready, closed), no polling.
@@ -17,6 +18,12 @@
 // SYNTHESIS TRIGGER: When this page detects status = 'synthesis_generating' and
 // the calling person is Person B (the one who just finished), it fires /api/synthesize.
 // The call is idempotent — safe if both A and B's pages fire it simultaneously.
+//
+// PHASE 2 — RESOLUTION EXCHANGE:
+// When both said yes at the checkpoint, the session enters the resolution exchange flow.
+// The ResolutionExchange component manages its own message fetching and polling.
+// The session page simply renders it for all resolution_exchange_* and
+// resolution_statement_proposed / *_confirmed_statement statuses.
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -30,7 +37,7 @@ import IntakePersonB from '@/components/IntakePersonB'
 import WaitingScreen from '@/components/WaitingScreen'
 import SynthesisView from '@/components/SynthesisView'
 import CheckpointView from '@/components/CheckpointView'
-import ResolutionView from '@/components/ResolutionView'
+import ResolutionExchange from '@/components/ResolutionExchange'
 import ClosingView from '@/components/ClosingView'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -69,6 +76,9 @@ const FAST_POLL_STATUSES = new Set([
   'synthesis_generating',
   'synthesis_revising',
   'closing_generating',
+  // Phase 2 — resolution exchange AI processing states
+  'resolution_exchange_opening',   // Bond is generating its opening message
+  'resolution_exchange_bond_turn', // Bond is generating its turn response
 ])
 
 const SLOW_POLL_STATUSES = new Set([
@@ -84,6 +94,13 @@ const SLOW_POLL_STATUSES = new Set([
   'both_responded_checkpoint',   // while post-checkpoint API decides next step
   'both_responded_resolution',
   'synthesis_revised',           // waiting for both to re-read revised synthesis
+  // Phase 2 — waiting for the other person to write
+  'resolution_exchange_a_turn',  // A's turn (B polls waiting)
+  'resolution_exchange_b_turn',  // B's turn (A polls waiting)
+  // Phase 2 — statement confirmation waiting
+  'resolution_statement_proposed',
+  'a_confirmed_statement',
+  'b_confirmed_statement',
 ])
 
 // Statuses that should trigger a decision API call (idempotent — safe to call multiple times)
@@ -101,6 +118,14 @@ const POST_INTAKE_B_STATUSES = new Set([
   'synthesis_revising', 'synthesis_revised',
   'checkpoint_ready', 'a_responded_checkpoint', 'b_responded_checkpoint', 'both_responded_checkpoint',
   'resolution_ready', 'a_responded_resolution', 'b_responded_resolution', 'both_responded_resolution',
+  // Phase 2 — resolution exchange states
+  'resolution_exchange_opening',
+  'resolution_exchange_a_turn',
+  'resolution_exchange_b_turn',
+  'resolution_exchange_bond_turn',
+  'resolution_statement_proposed',
+  'a_confirmed_statement',
+  'b_confirmed_statement',
   'closing_generating', 'closing_ready', 'checkpoint_split', 'closed',
 ])
 
@@ -481,29 +506,29 @@ export default function SessionPage() {
       )
     }
 
-    if (status === 'resolution_ready') {
+    // Phase 2 — Resolution Exchange (replaces old ResolutionView placeholder)
+    // All resolution_exchange_* states and statement confirmation states are handled here.
+    // ResolutionExchange manages its own message fetching and polling internally.
+    if ([
+      'resolution_ready',
+      'resolution_exchange_opening',
+      'resolution_exchange_a_turn',
+      'resolution_exchange_b_turn',
+      'resolution_exchange_bond_turn',
+      'resolution_statement_proposed',
+      'a_confirmed_statement',
+      'b_confirmed_statement',
+    ].includes(status)) {
       return (
-        <ResolutionView
+        <ResolutionExchange
           sessionId={sessionId}
           token={myToken}
           myRole="a"
-          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_resolution' } : s)}
-        />
-      )
-    }
-
-    if (status === 'a_responded_resolution') {
-      return <WaitingScreen variant="partner_resolution" partnerName={session.partner_nickname || session.person_b_name || undefined} />
-    }
-
-    // B responded resolution first — A still needs to answer
-    if (status === 'b_responded_resolution') {
-      return (
-        <ResolutionView
-          sessionId={sessionId}
-          token={myToken}
-          myRole="a"
-          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_resolution' } : s)}
+          status={status}
+          personAName={session.person_a_name || undefined}
+          personBName={session.person_b_name || undefined}
+          partnerNickname={session.partner_nickname || undefined}
+          onStatusChange={(newStatus) => setSession(s => s ? { ...s, status: newStatus } : s)}
         />
       )
     }
@@ -723,29 +748,27 @@ export default function SessionPage() {
       )
     }
 
-    if (status === 'resolution_ready') {
+    // Phase 2 — Resolution Exchange (replaces old ResolutionView placeholder)
+    if ([
+      'resolution_ready',
+      'resolution_exchange_opening',
+      'resolution_exchange_a_turn',
+      'resolution_exchange_b_turn',
+      'resolution_exchange_bond_turn',
+      'resolution_statement_proposed',
+      'a_confirmed_statement',
+      'b_confirmed_statement',
+    ].includes(status)) {
       return (
-        <ResolutionView
+        <ResolutionExchange
           sessionId={sessionId}
           token={myToken}
           myRole="b"
-          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_resolution' } : s)}
-        />
-      )
-    }
-
-    if (status === 'b_responded_resolution') {
-      return <WaitingScreen variant="partner_resolution" partnerName={session.person_a_name || undefined} />
-    }
-
-    // A responded resolution first — B still needs to answer
-    if (status === 'a_responded_resolution') {
-      return (
-        <ResolutionView
-          sessionId={sessionId}
-          token={myToken}
-          myRole="b"
-          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_resolution' } : s)}
+          status={status}
+          personAName={session.person_a_name || undefined}
+          personBName={session.person_b_name || undefined}
+          partnerNickname={session.partner_nickname || undefined}
+          onStatusChange={(newStatus) => setSession(s => s ? { ...s, status: newStatus } : s)}
         />
       )
     }
