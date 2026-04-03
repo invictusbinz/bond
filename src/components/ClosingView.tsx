@@ -2,12 +2,15 @@
 
 // ClosingView — shown to both people when status = 'closing_ready'.
 //
-// Two beats:
-//   1. The closing message — "You both showed up for this." — warm acknowledgement.
-//   2. "See your private reflection" CTA — generates and reveals their personal debrief.
+// Three beats:
+//   1. The Resolution Statement (if one exists — Phase 2 path only).
+//      Fetched from resolution_messages. Shown as a shared artifact — something
+//      both people leave with. Not shown on the checkpoint/closed path.
+//   2. The closing message — "You both showed up for this." — warm acknowledgement.
+//   3. "See your private reflection" CTA — generates and reveals their personal debrief.
 //      Debrief is per-person and private. Each person sees their own.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
 
 const C = {
@@ -22,7 +25,6 @@ const C = {
   dimmed: '#8a8480',
 }
 
-
 type Props = {
   sessionId: string
   token: string
@@ -34,6 +36,31 @@ export default function ClosingView({ sessionId, token }: Props) {
   const m = useIsMobile()
   const [debriefPhase, setDebriefPhase] = useState<DebriefPhase>('idle')
   const [debrief, setDebrief] = useState<string | null>(null)
+
+  // Resolution Statement — fetched on mount, only shown if present (Phase 2 path)
+  const [resolutionStatement, setResolutionStatement] = useState<string | null>(null)
+
+  // ── Fetch Resolution Statement on mount ──────────────────────────────────
+  // Silent fail — the statement is a bonus artifact, not required for the screen to work.
+  useEffect(() => {
+    async function fetchStatement() {
+      try {
+        const res = await fetch(
+          `/api/resolution-exchange/messages?sessionId=${sessionId}&token=${token}`
+        )
+        if (!res.ok) return
+        const data = await res.json()
+        const stmt = (data.messages || []).find(
+          (msg: { is_resolution_statement: boolean; content: string }) =>
+            msg.is_resolution_statement
+        )
+        if (stmt) setResolutionStatement(stmt.content)
+      } catch {
+        // Silent fail — screen renders normally without the statement
+      }
+    }
+    fetchStatement()
+  }, [sessionId, token])
 
   const handleRevealDebrief = async () => {
     if (debriefPhase === 'loading' || debriefPhase === 'ready') return
@@ -97,6 +124,39 @@ export default function ClosingView({ sessionId, token }: Props) {
       {/* ── Body ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: m ? '28px 16px 48px' : '56px 24px 72px' }}>
         <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+
+          {/* ── Resolution Statement (Phase 2 path only) ── */}
+          {resolutionStatement && (
+            <div style={{ marginBottom: '48px' }}>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '10px',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                color: C.accent,
+                marginBottom: '14px',
+              }}>
+                What you both agreed to
+              </p>
+              <div style={{
+                padding: m ? '20px' : '24px 28px',
+                backgroundColor: C.white,
+                border: `1.5px solid ${C.accent}`,
+                borderRadius: '10px',
+              }}>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: m ? '17px' : '19px',
+                  color: C.ink,
+                  lineHeight: 1.7,
+                  fontStyle: 'italic',
+                  margin: 0,
+                }}>
+                  {resolutionStatement}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* ── Closing message ── */}
           <p
@@ -228,7 +288,6 @@ export default function ClosingView({ sessionId, token }: Props) {
                 Just for you
               </p>
 
-              {/* Render debrief paragraphs */}
               {debrief.split('\n\n').filter(p => p.trim()).map((para, i) => (
                 <p
                   key={i}

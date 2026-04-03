@@ -51,7 +51,16 @@ export async function GET(request: NextRequest) {
       throw new Error('Could not load messages.')
     }
 
-    return NextResponse.json({ messages: messages || [] })
+    // ── Check if statement has already been revised once ────────────────────
+    // Used by the client to hide the "Something's missing" button after one revision.
+    const { data: revisionRecord } = await supabase
+      .from('session_responses')
+      .select('id')
+      .eq('session_id', sessionId)
+      .eq('step', 'resolution_revised')
+      .maybeSingle()
+
+    return NextResponse.json({ messages: messages || [], wasRevised: !!revisionRecord })
   } catch (error) {
     console.error('GET /api/resolution-exchange/messages error:', error)
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 })

@@ -11,7 +11,11 @@
 //   Bond opens → A writes → Bond responds → B writes → Bond responds → ... → Bond proposes statement
 //   Both confirm → session closes with the Resolution Statement as a shared artifact.
 //
-// This component manages its own message fetching + polling for new messages.
+// UX notes (Session 24):
+//   - Confirmation is "This is where we landed" — not a contract, a landing.
+//   - "Something's missing" path: one revision max, only before anyone confirms.
+//   - Message input has a richness nudge — subtle copy signals this is a limited space.
+//   - After confirming, copy is warm: "You said yes. Give [partner] a moment with this."
 
 import { useState, useEffect, useRef } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -81,6 +85,13 @@ export default function ResolutionExchange({
   const [error, setError] = useState<string | null>(null)
   const [loadedOnce, setLoadedOnce] = useState(false)
 
+  // "Something's missing" revision state
+  const [hasRevised, setHasRevised] = useState(false)   // true after one revision — hides the button
+  const [reviseOpen, setReviseOpen] = useState(false)   // whether the revision textarea is showing
+  const [reviseInput, setReviseInput] = useState('')
+  const [revising, setRevising] = useState(false)
+  const [reviseError, setReviseError] = useState<string | null>(null)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const openingTriggeredRef = useRef(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -111,6 +122,8 @@ export default function ResolutionExchange({
     if (!res.ok) return
     const data = await res.json()
     setMessages(data.messages || [])
+    // Update hasRevised from the server — persists across refreshes
+    if (data.wasRevised) setHasRevised(true)
     setLoadedOnce(true)
   }
 
@@ -154,10 +167,8 @@ export default function ResolutionExchange({
     }
 
     pollRef.current = setInterval(async () => {
-      // Fetch new messages
       await fetchMessages()
 
-      // Fetch updated session status
       const res = await fetch(`/api/sessions/${sessionId}`)
       if (res.ok) {
         const updated = await res.json()
@@ -214,14 +225,12 @@ export default function ResolutionExchange({
       })
 
       if (!res.ok) {
-        // Remove optimistic message on failure
         setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id))
         setInput(optimisticMessage.content)
         const data = await res.json()
         setError(data.error || 'Something went wrong. Try again.')
       } else {
         const data = await res.json()
-        // Re-fetch to get Bond's response
         await fetchMessages()
         onStatusChange(data.action || '')
       }
@@ -264,6 +273,39 @@ export default function ResolutionExchange({
     }
   }
 
+  // ── Submit revision ("Something's missing") ──────────────────────────────
+
+  async function handleRevise() {
+    if (!reviseInput.trim() || revising) return
+    setRevising(true)
+    setReviseError(null)
+
+    try {
+      const res = await fetch('/api/resolution-exchange/revise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, token, feedback: reviseInput.trim() }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setReviseError(data.error || 'Something went wrong. Try again.')
+      } else {
+        // Revision succeeded — close the textarea, mark as revised, refresh messages
+        setReviseOpen(false)
+        setReviseInput('')
+        setHasRevised(true)
+        await fetchMessages()
+        onStatusChange(data.action || 'resolution_statement_proposed')
+      }
+    } catch (err) {
+      console.error('Revise error:', err)
+      setReviseError('Bond had trouble revising. Try again.')
+    } finally {
+      setRevising(false)
+    }
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault()
@@ -278,8 +320,10 @@ export default function ResolutionExchange({
     if (isBondTurn) return "Bond is responding\u2026"
     if (isMyTurn) return "Your turn"
     if (isStatementProposed) return "Bond has a proposal"
-    if (isWaitingForPartnerConfirm) return `Waiting for ${partnerName}\u2026`
-    if (partnerHasConfirmedFirst) return `${partnerName} agreed. Your turn to confirm.`
+    // After I confirmed, waiting for partner
+    if (isWaitingForPartnerConfirm) return `${partnerName} is sitting with this\u2026`
+    // Partner confirmed first, now my turn
+    if (partnerHasConfirmedFirst) return `${partnerName} said yes. Take a moment.`
     return `Waiting for ${partnerName}\u2026`
   }
 
@@ -292,6 +336,9 @@ export default function ResolutionExchange({
 
     // Resolution Statement — special full-width card
     if (isStatement) {
+      // Can only revise before anyone has confirmed (status still proposed) and only once
+      const canRevise = isStatementProposed && !hasConfirmed && !hasRevised
+
       return (
         <div
           key={msg.id}
@@ -303,6 +350,7 @@ export default function ResolutionExchange({
             borderRadius: '10px',
           }}
         >
+          {/* Label */}
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: '11px',
@@ -311,8 +359,10 @@ export default function ResolutionExchange({
             color: C.accent,
             marginBottom: '14px',
           }}>
-            Bond's proposal
+            {hasRevised ? "Bond's revised proposal" : "Bond's proposal"}
           </p>
+
+          {/* Statement text */}
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: m ? '17px' : '19px',
@@ -324,55 +374,182 @@ export default function ResolutionExchange({
             {msg.content}
           </p>
 
-          {/* Confirm button — shown unless this person has already confirmed */}
+          {/* Settling line — shown before confirm button, not after */}
           {(isStatementProposed || partnerHasConfirmedFirst) && !hasConfirmed && (
-            <button
-              onClick={handleConfirm}
-              disabled={confirming}
-              style={{
-                padding: '12px 24px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: confirming ? C.rule : C.accent,
-                color: confirming ? '#a09890' : C.white,
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: C.dimmed,
+              marginBottom: '20px',
+              fontStyle: 'italic',
+            }}>
+              Sit with this for a moment. Confirm when it feels right.
+            </p>
+          )}
+
+          {/* Confirm button — shown unless already confirmed */}
+          {(isStatementProposed || partnerHasConfirmedFirst) && !hasConfirmed && (
+            <div style={{ display: 'flex', flexDirection: m ? 'column' : 'row', gap: '10px', alignItems: m ? 'stretch' : 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleConfirm}
+                disabled={confirming}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: confirming ? C.rule : C.accent,
+                  color: confirming ? '#a09890' : C.white,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: confirming ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.15s',
+                  width: m ? '100%' : 'auto',
+                }}
+                onMouseEnter={e => {
+                  if (!confirming) e.currentTarget.style.backgroundColor = C.accentHover
+                }}
+                onMouseLeave={e => {
+                  if (!confirming) e.currentTarget.style.backgroundColor = C.accent
+                }}
+              >
+                {confirming ? 'Confirming\u2026' : 'This is where we landed'}
+              </button>
+
+              {/* "Something's missing" — only before anyone confirms, only once */}
+              {canRevise && !reviseOpen && (
+                <button
+                  onClick={() => setReviseOpen(true)}
+                  style={{
+                    padding: '12px 20px',
+                    borderRadius: '6px',
+                    border: `1px solid ${C.rule}`,
+                    backgroundColor: 'transparent',
+                    color: C.muted,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'color 0.15s, border-color 0.15s',
+                    width: m ? '100%' : 'auto',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.color = C.ink
+                    e.currentTarget.style.borderColor = C.muted
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.color = C.muted
+                    e.currentTarget.style.borderColor = C.rule
+                  }}
+                >
+                  Something&apos;s missing
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Revision textarea — shown when "Something's missing" is tapped */}
+          {reviseOpen && canRevise && (
+            <div style={{ marginTop: '20px' }}>
+              <p style={{
                 fontFamily: "'DM Sans', sans-serif",
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: confirming ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.15s',
-                width: m ? '100%' : 'auto',
-              }}
-              onMouseEnter={e => {
-                if (!confirming) e.currentTarget.style.backgroundColor = C.accentHover
-              }}
-              onMouseLeave={e => {
-                if (!confirming) e.currentTarget.style.backgroundColor = C.accent
-              }}
-            >
-              {confirming ? 'Confirming\u2026' : 'I agree to this'}
-            </button>
+                fontSize: '13px',
+                color: C.muted,
+                marginBottom: '10px',
+                lineHeight: 1.6,
+              }}>
+                Tell Bond what&apos;s not captured here. Be specific — Bond will revise the statement once.
+              </p>
+              <textarea
+                value={reviseInput}
+                onChange={e => setReviseInput(e.target.value)}
+                placeholder="What's missing or not quite right\u2026"
+                rows={3}
+                disabled={revising}
+                style={{
+                  width: '100%',
+                  padding: '12px 14px',
+                  borderRadius: '6px',
+                  border: `1.5px solid ${C.rule}`,
+                  backgroundColor: C.paper,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '14px',
+                  color: C.ink,
+                  lineHeight: 1.65,
+                  resize: 'vertical',
+                  marginBottom: '10px',
+                }}
+              />
+              {reviseError && (
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '13px',
+                  color: '#b94040',
+                  marginBottom: '10px',
+                }}>
+                  {reviseError}
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: '10px', flexDirection: m ? 'column' : 'row' }}>
+                <button
+                  onClick={handleRevise}
+                  disabled={!reviseInput.trim() || revising}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    backgroundColor: reviseInput.trim() && !revising ? C.accent : C.rule,
+                    color: reviseInput.trim() && !revising ? C.white : '#a09890',
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: reviseInput.trim() && !revising ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 0.15s',
+                    width: m ? '100%' : 'auto',
+                  }}
+                  onMouseEnter={e => {
+                    if (reviseInput.trim() && !revising) e.currentTarget.style.backgroundColor = C.accentHover
+                  }}
+                  onMouseLeave={e => {
+                    if (reviseInput.trim() && !revising) e.currentTarget.style.backgroundColor = C.accent
+                  }}
+                >
+                  {revising ? 'Bond is revising\u2026' : 'Share with Bond'}
+                </button>
+                <button
+                  onClick={() => { setReviseOpen(false); setReviseInput(''); setReviseError(null) }}
+                  disabled={revising}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    border: `1px solid ${C.rule}`,
+                    backgroundColor: 'transparent',
+                    color: C.dimmed,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: '13px',
+                    cursor: revising ? 'not-allowed' : 'pointer',
+                    width: m ? '100%' : 'auto',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
 
           {/* After confirming */}
-          {hasConfirmed && !isWaitingForPartnerConfirm && (
+          {hasConfirmed && (
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '14px',
               color: C.muted,
+              fontStyle: 'italic',
             }}>
-              You agreed. Waiting for {partnerName}.
+              {`You said yes. Give ${partnerName} a moment with this.`}
             </p>
           )}
 
-          {isWaitingForPartnerConfirm && (
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
-              color: C.muted,
-            }}>
-              You agreed. Waiting for {partnerName}.
-            </p>
-          )}
+          {/* Partner confirmed first, I haven't yet (this is the waiting copy shown above the button) */}
+          {/* The partnerHasConfirmedFirst confirm prompt is handled above via the button logic */}
         </div>
       )
     }
@@ -599,8 +776,8 @@ export default function ResolutionExchange({
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Say what you want them to understand\u2026"
-              rows={m ? 3 : 4}
+              placeholder={`Say what you most need ${partnerName} to understand\u2026`}
+              rows={m ? 4 : 5}
               disabled={sending}
               style={{
                 width: '100%',
@@ -613,7 +790,7 @@ export default function ResolutionExchange({
                 color: C.ink,
                 lineHeight: 1.65,
                 resize: 'vertical',
-                marginBottom: '12px',
+                marginBottom: '10px',
               }}
             />
             <div style={{
@@ -623,13 +800,14 @@ export default function ResolutionExchange({
               flexDirection: m ? 'column' : 'row',
               gap: m ? '10px' : '0',
             }}>
-              <span className="cmd-hint" style={{
+              {/* Richness nudge — subtle, in place of the keyboard hint on desktop */}
+              <span style={{
                 fontFamily: "'DM Sans', sans-serif",
-                fontSize: '10px',
+                fontSize: '11px',
                 color: '#c0b8b0',
-                letterSpacing: '0.1em',
+                letterSpacing: '0.05em',
               }}>
-                &#8984; + Enter to send
+                No limit — say everything you need to.
               </span>
               <button
                 onClick={handleSend}
@@ -661,7 +839,7 @@ export default function ResolutionExchange({
         </div>
       )}
 
-      {/* Waiting message — when it's not your turn but no input shown */}
+      {/* Waiting message — when it's not your turn and no input or special state */}
       {!isMyTurn && !isBondTurn && !isOpening && !isStatementProposed && !isWaitingForPartnerConfirm && !partnerHasConfirmedFirst && loadedOnce && messages.length > 0 && (
         <div style={{
           borderTop: `1px solid ${C.rule}`,
@@ -674,7 +852,7 @@ export default function ResolutionExchange({
             fontSize: '13px',
             color: C.dimmed,
           }}>
-            {partnerName} is responding\u2026
+            {`${partnerName} is responding\u2026`}
           </p>
         </div>
       )}
