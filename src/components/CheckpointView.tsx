@@ -2,14 +2,18 @@
 
 // CheckpointView — shown to both people after synthesis is settled.
 //
-// Asks one question privately: "Do you want to work through this together?"
-// yes / not yet
+// Asks one question privately: where are you?
+// Two options, each with an honest description of what comes next.
 //
-// "Not yet" is softer than "no" — it's honest without being final.
-// If either person says "not yet", the session closes with care.
-// If both say yes, the session moves to resolution questions.
+// "This was what I needed." → session closes. Each person gets a private debrief.
+// "I want to keep working through this." → Bond helps both work through what's unresolved.
 //
-// Only their own answer is visible. Bond uses both to decide what comes next.
+// The grounding line names the partner and explains what happens — users have no
+// product map at this moment and need to know what each choice actually leads to.
+//
+// Internal values stay as 'yes' and 'not_yet' for DB compatibility:
+//   yes      → "I want to keep working through this."
+//   not_yet  → "This was what I needed."
 
 import { useState } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -18,7 +22,8 @@ type Props = {
   sessionId: string
   token: string
   myRole: 'a' | 'b'
-  onResponded: () => void
+  partnerName?: string                    // used in the grounding line
+  onResponded: (choice: string) => void   // passes back what was chosen
 }
 
 type CheckpointChoice = 'yes' | 'not_yet'
@@ -38,7 +43,7 @@ const C = {
 }
 
 
-export default function CheckpointView({ sessionId, token, myRole, onResponded }: Props) {
+export default function CheckpointView({ sessionId, token, myRole, partnerName, onResponded }: Props) {
   const m = useIsMobile()
   const [choice, setChoice] = useState<CheckpointChoice | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -68,8 +73,14 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
 
       if (!res.ok) throw new Error('Could not save your response.')
 
+      // Save choice locally so the split screen can show per-person copy
+      // even if the person refreshes their browser after submitting.
+      try {
+        localStorage.setItem(`bond_checkpoint_choice_${sessionId}`, choice)
+      } catch {}
+
       setSubmitted(true)
-      setTimeout(() => onResponded(), 800)
+      setTimeout(() => onResponded(choice), 800)
     } catch (err) {
       console.error(err)
       setError('Bond had trouble saving your response. Give it a moment and try again.')
@@ -77,6 +88,11 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
       setSubmitting(false)
     }
   }
+
+  // Grounding line names the partner if we have them, otherwise generic.
+  const groundingLine = partnerName
+    ? `${partnerName} will be asked the same thing. What you both choose determines what comes next.`
+    : 'They'll be asked the same thing. What you both choose determines what comes next.'
 
   return (
     <div
@@ -120,80 +136,32 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
           Bond has heard you both.
         </h1>
 
-        {/* Body */}
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: '16px',
-          color: C.muted,
-          lineHeight: 1.75,
-          marginBottom: m ? '28px' : '48px',
-          maxWidth: '460px',
-        }}>
-          You've each shared something real. Before moving forward, Bond wants to ask you one question — privately.
-        </p>
-
         {/* Divider */}
         <div style={{
           width: '40px',
           height: '1px',
           backgroundColor: C.rule,
-          marginBottom: '40px',
+          marginBottom: '32px',
         }} />
 
-        {/* The question */}
+        {/* Choices */}
         {!submitted ? (
           <div>
+
+            {/* Grounding line */}
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '22px',
-              fontWeight: 400,
-              fontStyle: 'italic',
-              color: C.ink,
-              lineHeight: 1.5,
-              marginBottom: '10px',
-            }}>
-              Do you want to work through this together?
-            </p>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: '14px',
+              fontSize: '15px',
               color: C.muted,
-              lineHeight: 1.6,
-              marginBottom: '32px',
+              lineHeight: 1.7,
+              marginBottom: '28px',
             }}>
-              Only you can see your answer. There's no wrong response — Bond just needs to know where you are.
+              {groundingLine}
             </p>
 
-            {/* Choices */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
 
-              <button
-                onClick={() => setChoice('yes')}
-                style={{
-                  padding: '18px 24px',
-                  borderRadius: '8px',
-                  border: `1.5px solid ${choice === 'yes' ? C.accent : C.rule}`,
-                  backgroundColor: choice === 'yes' ? C.accentSoft : C.white,
-                  color: C.ink,
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '15px',
-                  fontWeight: choice === 'yes' ? 500 : 400,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s ease',
-                  lineHeight: 1.5,
-                }}
-              >
-                <span style={{ display: 'block', marginBottom: '3px' }}>Yes, I want to work through this</span>
-                <span style={{
-                  fontSize: '13px',
-                  color: C.muted,
-                  fontWeight: 400,
-                }}>
-                  I'm ready to move forward together.
-                </span>
-              </button>
-
+              {/* Option 1 — done / "This was what I needed." */}
               <button
                 onClick={() => setChoice('not_yet')}
                 style={{
@@ -211,13 +179,41 @@ export default function CheckpointView({ sessionId, token, myRole, onResponded }
                   lineHeight: 1.5,
                 }}
               >
-                <span style={{ display: 'block', marginBottom: '3px' }}>Not yet — I need more time</span>
+                <span style={{ display: 'block', marginBottom: '5px' }}>This was what I needed.</span>
                 <span style={{
                   fontSize: '13px',
                   color: C.muted,
                   fontWeight: 400,
                 }}>
-                  This was useful. I'm just not ready to take the next step right now.
+                  Bond closes this session here. You'll each get a private reflection — just yours.
+                </span>
+              </button>
+
+              {/* Option 2 — keep going / "I want to keep working through this." */}
+              <button
+                onClick={() => setChoice('yes')}
+                style={{
+                  padding: '18px 24px',
+                  borderRadius: '8px',
+                  border: `1.5px solid ${choice === 'yes' ? C.accent : C.rule}`,
+                  backgroundColor: choice === 'yes' ? C.accentSoft : C.white,
+                  color: C.ink,
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '15px',
+                  fontWeight: choice === 'yes' ? 500 : 400,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  lineHeight: 1.5,
+                }}
+              >
+                <span style={{ display: 'block', marginBottom: '5px' }}>I want to keep working through this.</span>
+                <span style={{
+                  fontSize: '13px',
+                  color: C.muted,
+                  fontWeight: 400,
+                }}>
+                  Bond will help you both work through what's still unresolved — with Bond in the middle, same as before.
                 </span>
               </button>
 

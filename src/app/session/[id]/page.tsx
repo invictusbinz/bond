@@ -101,7 +101,7 @@ const POST_INTAKE_B_STATUSES = new Set([
   'synthesis_revising', 'synthesis_revised',
   'checkpoint_ready', 'a_responded_checkpoint', 'b_responded_checkpoint', 'both_responded_checkpoint',
   'resolution_ready', 'a_responded_resolution', 'b_responded_resolution', 'both_responded_resolution',
-  'closing_generating', 'closing_ready', 'closed',
+  'closing_generating', 'closing_ready', 'checkpoint_split', 'closed',
 ])
 
 const C = {
@@ -130,6 +130,10 @@ export default function SessionPage() {
   // Used to distinguish the checkpoint path (v1) from the revised-synthesis path (v2)
   // when the status is a_responded_checkpoint or b_responded_checkpoint.
   const [synthesisVersion, setSynthesisVersion] = useState<number>(1)
+  // Stores what this person chose at the checkpoint ('yes' or 'not_yet').
+  // Set when they submit CheckpointView, also read from localStorage on refresh.
+  // Used to show per-person copy on CheckpointSplitScreen without revealing partner's choice.
+  const [myCheckpointChoice, setMyCheckpointChoice] = useState<string | null>(null)
 
   // Track whether synthesis has been triggered this session to avoid double-firing
   const synthesisTriggeredRef = useRef(false)
@@ -209,6 +213,15 @@ export default function SessionPage() {
       } else {
         setLoadState('no_access')
         return
+      }
+
+      // If landing on the split screen after a refresh, read the stored checkpoint choice.
+      // This lets CheckpointSplitScreen show per-person copy without a new API call.
+      if (data.status === 'checkpoint_split') {
+        try {
+          const stored = localStorage.getItem(`bond_checkpoint_choice_${sessionId}`)
+          if (stored) setMyCheckpointChoice(stored)
+        } catch {}
       }
 
       // If synthesis is already ready (or in a post-synthesis state), fetch the content.
@@ -424,7 +437,11 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="a"
-          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
+          partnerName={session.partner_nickname || session.person_b_name || undefined}
+          onResponded={(choice) => {
+            setMyCheckpointChoice(choice)
+            setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)
+          }}
         />
       )
     }
@@ -455,7 +472,11 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="a"
-          onResponded={() => setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)}
+          partnerName={session.partner_nickname || session.person_b_name || undefined}
+          onResponded={(choice) => {
+            setMyCheckpointChoice(choice)
+            setSession(s => s ? { ...s, status: 'a_responded_checkpoint' } : s)
+          }}
         />
       )
     }
@@ -487,7 +508,7 @@ export default function SessionPage() {
       )
     }
 
-    if (status === 'checkpoint_split') return <CheckpointSplitScreen />
+    if (status === 'checkpoint_split') return <CheckpointSplitScreen myChoice={myCheckpointChoice} />
 
     if (status === 'closing_generating') {
       return <WaitingScreen variant="closing_generating" />
@@ -658,7 +679,11 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="b"
-          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
+          partnerName={session.person_a_name || undefined}
+          onResponded={(choice) => {
+            setMyCheckpointChoice(choice)
+            setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)
+          }}
         />
       )
     }
@@ -689,7 +714,11 @@ export default function SessionPage() {
           sessionId={sessionId}
           token={myToken}
           myRole="b"
-          onResponded={() => setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)}
+          partnerName={session.person_a_name || undefined}
+          onResponded={(choice) => {
+            setMyCheckpointChoice(choice)
+            setSession(s => s ? { ...s, status: 'b_responded_checkpoint' } : s)
+          }}
         />
       )
     }
@@ -721,7 +750,7 @@ export default function SessionPage() {
       )
     }
 
-    if (status === 'checkpoint_split') return <CheckpointSplitScreen />
+    if (status === 'checkpoint_split') return <CheckpointSplitScreen myChoice={myCheckpointChoice} />
     if (status === 'closing_generating') return <WaitingScreen variant="closing_generating" />
     if (status === 'closing_ready') return <ClosingView sessionId={sessionId} token={myToken} />
     if (status === 'closed') return <ClosedScreen />
@@ -753,34 +782,80 @@ function ErrorScreen({ message }: { message: string }) {
   )
 }
 
-// ─── Checkpoint split screen — shown when one person wanted to resolve and the other didn't ─
+// ─── Checkpoint split screen ───────────────────────────────────────────────────
+// Shown to both people when one chose "This was what I needed" and the other
+// chose "I want to keep working through this."
+//
+// Each person sees different copy based on their OWN choice — without revealing
+// what the other person chose. 'myChoice' comes from localStorage (set when
+// they submitted CheckpointView) or from state set during the same session.
+//
+// not_yet → "This was what I needed." → clean, dignified close
+// yes     → "I want to keep working through this." → honest acknowledgment + path forward
+// null    → fallback generic copy (different device / localStorage unavailable)
 
-function CheckpointSplitScreen() {
+function CheckpointSplitScreen({ myChoice }: { myChoice: string | null }) {
+
+  // Person who felt done — their session closes cleanly.
+  if (myChoice === 'not_yet') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
+        <div style={{ maxWidth: '440px' }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
+            This session has closed.
+          </p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
+            Bond heard you both. Sometimes being heard is the whole thing — and that&apos;s where you are. Your private reflection is ready when you want it.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Person who wanted to keep working — honest acknowledgment, path to a new session.
+  if (myChoice === 'yes') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
+        <div style={{ maxWidth: '440px' }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
+            You&apos;re not in the same place right now.
+          </p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
+            Bond heard you both. There&apos;s more you wanted to work through — that&apos;s real, and it matters. When you&apos;re both ready, a new session is the path forward.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Fallback — choice not available (different device, localStorage cleared, etc.)
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
       <div style={{ maxWidth: '440px' }}>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
-          You&apos;re in different places right now.
+          This session has closed.
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
-          One of you is ready to work through this. The other needs a bit more time. That&apos;s okay — being heard is enough for now. Come back when you&apos;re both ready to keep going.
+          Bond heard you both. Whatever brought you here mattered — and Bond holds that with care.
         </p>
       </div>
     </div>
   )
 }
 
-// ─── Closed screen — shown when one/both weren't ready (checkpoint said not_yet) ─
+// ─── Closed screen ─────────────────────────────────────────────────────────────
+// Shown when BOTH people chose "This was what I needed." — a complete, dignified close.
+// (Split case now goes to CheckpointSplitScreen instead.)
 
 function ClosedScreen() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#faf8f4', padding: '24px' }}>
       <div style={{ maxWidth: '440px' }}>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '26px', fontWeight: 400, color: '#1a1714', marginBottom: '14px', lineHeight: 1.35 }}>
-          This is as far as Bond can take you right now.
+          Bond heard you both.
         </p>
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#6b6560', lineHeight: 1.75 }}>
-          One or both of you wasn&apos;t ready to move through this together. That&apos;s okay. What you each shared still matters, and Bond holds it with care.
+          Sometimes that&apos;s enough. This session has closed.
         </p>
       </div>
     </div>

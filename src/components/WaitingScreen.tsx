@@ -86,7 +86,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
   partner_synthesis: {
     headline: 'Your thoughts are in.',
-    body: 'Waiting for them to read their side.',
+    body: 'They\'re reading their side. You\'ll both move forward when they\'re done.',
     color: { soft: C.greenSoft, dot: C.green },
   },
   partner_checkpoint: {
@@ -126,7 +126,7 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
         : base.headline,
     body:
       variant === 'partner_synthesis' && partnerName
-        ? `Waiting for ${partnerName} to read their side.`
+        ? `${partnerName} is reading their side. You'll both move forward when they're done.`
         : variant === 'partner_checkpoint' && partnerName
         ? `Waiting for ${partnerName}'s answer.`
         : variant === 'partner_resolution' && partnerName
