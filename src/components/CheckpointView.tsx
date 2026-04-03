@@ -92,7 +92,7 @@ export default function CheckpointView({ sessionId, token, myRole, partnerName, 
   // Grounding line names the partner if we have them, otherwise generic.
   const groundingLine = partnerName
     ? `${partnerName} will be asked the same thing. What you both choose determines what comes next.`
-    : 'They'll be asked the same thing. What you both choose determines what comes next.'
+    : "They'll be asked the same thing. What you both choose determines what comes next."
 
   return (
     <div
