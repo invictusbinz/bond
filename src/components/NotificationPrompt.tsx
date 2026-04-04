@@ -75,7 +75,7 @@ export default function NotificationPrompt({
   onOptedIn,
   onSkipped,
 }: Props) {
-  const [state, setState] = useState<'idle' | 'requesting' | 'confirmed' | 'skipped' | 'unsupported'>(() => {
+  const [state, setState] = useState<'idle' | 'requesting' | 'confirmed' | 'skipped' | 'unsupported' | 'error'>(() => {
     if (!isNotificationsSupported()) return 'unsupported'
     // If the user already decided in a previous page load, respect that decision.
     const stored = getStoredState(sessionId, myPerson)
@@ -116,6 +116,34 @@ export default function NotificationPrompt({
       </div>
     )
   }
+  if (state === 'error') {
+    return (
+      <div
+        style={{
+          backgroundColor: C.white,
+          border: `1px solid #f0d5c8`,
+          borderRadius: '8px',
+          padding: '14px 18px',
+          marginTop: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <span style={{ fontSize: '14px', color: '#b94040' }}>✕</span>
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '13px',
+            color: '#b94040',
+            margin: 0,
+          }}
+        >
+          Couldn&apos;t set up notifications. (Ad blockers sometimes prevent this).
+        </p>
+      </div>
+    )
+  }
 
   async function handleOptIn() {
     setState('requesting')
@@ -127,16 +155,12 @@ export default function NotificationPrompt({
         setState('confirmed')
         onOptedIn?.(playerId)
       } else {
-        // User declined the browser permission dialog — treat as skipped
-        setStoredState(sessionId, myPerson, 'skipped')
-        setState('skipped')
-        onSkipped?.()
+        // Failed (timeout, ad blocker, or permission denied). 
+        // We set error state but DO NOT save to localStorage so they can try again next session.
+        setState('error')
       }
     } catch {
-      // Any error: quietly skip — notifications are non-blocking
-      setStoredState(sessionId, myPerson, 'skipped')
-      setState('skipped')
-      onSkipped?.()
+      setState('error')
     }
   }
 

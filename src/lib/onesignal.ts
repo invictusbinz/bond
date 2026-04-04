@@ -59,8 +59,15 @@ export function initOneSignal(): Promise<any> {
   _initPromise = new Promise((resolve) => {
     injectScript()
 
+    // 8-second timeout fallback in case the CDN is blocked
+    const timeout = setTimeout(() => {
+      console.warn('OneSignal init timed out. CDN might be blocked.')
+      resolve(null)
+    }, 8000)
+
     window.OneSignalDeferred = window.OneSignalDeferred || []
     window.OneSignalDeferred.push(async (oss: any) => {
+      clearTimeout(timeout)
       try {
         await oss.init({
           appId,
