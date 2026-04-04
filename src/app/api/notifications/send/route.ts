@@ -61,19 +61,22 @@ async function sendPushToPlayerIds(
 
   const payload = {
     app_id: appId,
-    include_player_ids: playerIds,
+    // New API uses include_subscription_ids (v16+ SDK stores subscription IDs, not legacy player IDs)
+    include_subscription_ids: playerIds,
     headings: { en: heading },
     contents: { en: body },
     // Tapping the notification opens the Bond app.
-    // We send to the root for now since we don't know which session URL to use here.
-    // Post-auth, this should deep-link to the specific session.
+    // Post-auth this should deep-link to the specific session.
     web_url: process.env.NEXT_PUBLIC_APP_URL || 'https://bond-lovat-xi.vercel.app',
   }
 
-  const response = await fetch('https://onesignal.com/api/v1/notifications', {
+  // New OneSignal API (Nov 2024): endpoint and auth header format both changed.
+  // Old: POST https://onesignal.com/api/v1/notifications + Authorization: Basic KEY
+  // New: POST https://api.onesignal.com/notifications?c=push + Authorization: Key KEY
+  const response = await fetch('https://api.onesignal.com/notifications?c=push', {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${restApiKey}`,
+      Authorization: `Key ${restApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
