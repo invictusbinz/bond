@@ -179,6 +179,7 @@ export default function ResolutionExchange({
       // retry triggerOpening() — it may have failed on the first attempt.
       // The openingTriggeredRef guard prevents duplicate in-flight calls.
       if ((status === 'resolution_ready' || status === 'resolution_exchange_opening') && messages.length === 0) {
+    openingTriggeredRef.current = false // Reset the guard so it actually retries
         triggerOpening()
       }
 
@@ -716,7 +717,7 @@ export default function ResolutionExchange({
               textAlign: 'center',
               paddingTop: '40px',
             }}>
-              Loading\u2026
+              {"Loading\u2026"}
             </p>
           )}
 

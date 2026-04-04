@@ -282,7 +282,7 @@ export default function SessionPage() {
     // but we don't want the poll to redirect B away before the "Got it"
     // button has appeared. The intake component calls onComplete() itself
     // to control the transition.
-    if (myRole === 'b' && personBFlow === 'intake') return
+    if (myRole === 'b' && personBFlow === 'intake' && session && !POST_INTAKE_B_STATUSES.has(session.status)) return
 
     const status = session.status
     const isFast = FAST_POLL_STATUSES.has(status)
