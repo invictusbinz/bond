@@ -199,9 +199,17 @@ export default function SessionPage() {
         synthesisTriggeredRef.current = false
         return
       }
-      // After synthesis completes, re-fetch session to get updated status
+      // After synthesis completes, re-fetch session to get updated status.
+      // Also fetch synthesis content immediately — the polling interval's
+      // status-change check won't trigger fetchSynthesis() here because
+      // triggerSynthesis() updates the session directly (not via the interval).
       const updated = await fetchSession()
-      if (updated) setSession(updated)
+      if (updated) {
+        setSession(updated)
+        if (updated.status === 'synthesis_ready' || updated.status === 'synthesis_revised') {
+          fetchSynthesis()
+        }
+      }
     } catch (err) {
       console.error('Synthesis trigger error:', err)
       synthesisTriggeredRef.current = false // allow retry
@@ -269,6 +277,13 @@ export default function SessionPage() {
   useEffect(() => {
     if (loadState !== 'ready' || !session || !myToken) return
 
+    // Don't poll while Person B is actively doing their intake.
+    // The session API has already advanced the status when intake completes,
+    // but we don't want the poll to redirect B away before the "Got it"
+    // button has appeared. The intake component calls onComplete() itself
+    // to control the transition.
+    if (myRole === 'b' && personBFlow === 'intake') return
+
     const status = session.status
     const isFast = FAST_POLL_STATUSES.has(status)
     const isSlow = SLOW_POLL_STATUSES.has(status)
@@ -313,7 +328,7 @@ export default function SessionPage() {
     }, isFast ? 4000 : 10000)
 
     return () => clearInterval(interval)
-  }, [loadState, session?.status, myToken])
+  }, [loadState, session?.status, myToken, myRole, personBFlow])
 
   // ── Loading / error states ─────────────────────────────────────────────────
 

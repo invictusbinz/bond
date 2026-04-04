@@ -133,11 +133,17 @@ export default function ResolutionExchange({
     if (openingTriggeredRef.current) return
     openingTriggeredRef.current = true
     try {
-      await fetch('/api/resolution-exchange/open', {
+      const res = await fetch('/api/resolution-exchange/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, token }),
       })
+      // Reset ref on API-level errors (4xx/5xx) so the next poll can retry.
+      // fetch() only throws on network errors — explicit status check needed.
+      if (!res.ok) {
+        console.error('Opening trigger API error:', res.status)
+        openingTriggeredRef.current = false
+      }
     } catch (err) {
       console.error('Opening trigger error:', err)
       openingTriggeredRef.current = false // allow retry
@@ -168,6 +174,13 @@ export default function ResolutionExchange({
 
     pollRef.current = setInterval(async () => {
       await fetchMessages()
+
+      // If we're in the opening state and no messages have arrived yet,
+      // retry triggerOpening() — it may have failed on the first attempt.
+      // The openingTriggeredRef guard prevents duplicate in-flight calls.
+      if ((status === 'resolution_ready' || status === 'resolution_exchange_opening') && messages.length === 0) {
+        triggerOpening()
+      }
 
       const res = await fetch(`/api/sessions/${sessionId}`)
       if (res.ok) {
@@ -717,7 +730,8 @@ export default function ResolutionExchange({
               paddingTop: '40px',
               lineHeight: 1.7,
             }}>
-              Bond is opening the exchange\u2026
+              {/* Note: use JS string {"\u2026"} not JSX text \u2026 — JSX text doesn't interpret unicode escapes */}
+              {"Bond is opening the exchange\u2026"}
             </p>
           )}
 

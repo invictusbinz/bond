@@ -4,7 +4,10 @@
 //
 // Shown at the right moment in the session flow:
 //   - Person A: on the WaitingScreen (awaiting_b variant) — "get notified when they join"
-//   - Person B: after confirming availability — "get notified when your synthesis is ready"
+//   - Person B: after confirming availability — "get notified when it's time to come back"
+//
+// Persistence: opt-in/skip choice is saved to localStorage per-session so the prompt
+// doesn't reappear on reload, and so "Setting up…" can't get stuck on a repeat attempt.
 //
 // Props:
 //   headline    — short line explaining what the notification is for
@@ -29,6 +32,8 @@ const C = {
   rule: '#e0d8cc',
   muted: '#6b6560',
   dimmed: '#8a8480',
+  greenSoft: '#d4e8dc',
+  green: '#3d6b4f',
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -43,6 +48,22 @@ type Props = {
   onSkipped?: () => void
 }
 
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+
+function getStoredState(sessionId: string, person: string): 'done' | 'skipped' | null {
+  try {
+    const val = localStorage.getItem(`bond_notif_${sessionId}_${person}`)
+    if (val === 'done' || val === 'skipped') return val
+  } catch {}
+  return null
+}
+
+function setStoredState(sessionId: string, person: string, val: 'done' | 'skipped') {
+  try {
+    localStorage.setItem(`bond_notif_${sessionId}_${person}`, val)
+  } catch {}
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function NotificationPrompt({
@@ -54,12 +75,47 @@ export default function NotificationPrompt({
   onOptedIn,
   onSkipped,
 }: Props) {
-  const [state, setState] = useState<'idle' | 'requesting' | 'done' | 'skipped' | 'unsupported'>(
-    isNotificationsSupported() ? 'idle' : 'unsupported'
-  )
+  const [state, setState] = useState<'idle' | 'requesting' | 'confirmed' | 'skipped' | 'unsupported'>(() => {
+    if (!isNotificationsSupported()) return 'unsupported'
+    // If the user already decided in a previous page load, respect that decision.
+    const stored = getStoredState(sessionId, myPerson)
+    if (stored === 'done') return 'confirmed'  // already opted in — show brief confirmation
+    if (stored === 'skipped') return 'skipped'  // already said no — hide entirely
+    return 'idle'
+  })
 
-  // If this browser doesn't support push, hide the component entirely.
-  if (state === 'unsupported' || state === 'done' || state === 'skipped') return null
+  // Fully hidden states
+  if (state === 'unsupported' || state === 'skipped') return null
+
+  // After opting in: show a small confirmation note instead of disappearing silently
+  if (state === 'confirmed') {
+    return (
+      <div
+        style={{
+          backgroundColor: C.white,
+          border: `1px solid ${C.greenSoft}`,
+          borderRadius: '8px',
+          padding: '14px 18px',
+          marginTop: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <span style={{ fontSize: '14px', color: C.green }}>✓</span>
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '13px',
+            color: C.green,
+            margin: 0,
+          }}
+        >
+          You&apos;ll be notified.
+        </p>
+      </div>
+    )
+  }
 
   async function handleOptIn() {
     setState('requesting')
@@ -67,21 +123,25 @@ export default function NotificationPrompt({
       const playerId = await subscribeToNotifications()
       if (playerId) {
         await saveSubscription({ sessionId, person: myPerson, playerId, token: myToken })
-        setState('done')
+        setStoredState(sessionId, myPerson, 'done')
+        setState('confirmed')
         onOptedIn?.(playerId)
       } else {
         // User declined the browser permission dialog — treat as skipped
+        setStoredState(sessionId, myPerson, 'skipped')
         setState('skipped')
         onSkipped?.()
       }
     } catch {
       // Any error: quietly skip — notifications are non-blocking
+      setStoredState(sessionId, myPerson, 'skipped')
       setState('skipped')
       onSkipped?.()
     }
   }
 
   function handleSkip() {
+    setStoredState(sessionId, myPerson, 'skipped')
     setState('skipped')
     onSkipped?.()
   }
@@ -159,7 +219,7 @@ export default function NotificationPrompt({
             if (state !== 'requesting') e.currentTarget.style.backgroundColor = C.accent
           }}
         >
-          {state === 'requesting' ? 'Setting up…' : buttonLabel}
+          {state === 'requesting' ? 'Setting up\u2026' : buttonLabel}
         </button>
       </div>
     </div>

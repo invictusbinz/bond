@@ -507,12 +507,14 @@ export default function AvailabilityCheckIn({
           </div>
 
           {/* Notification opt-in for B — P2: notify when synthesis is ready.
+              Copy avoids the word "synthesis" — B has no context for it yet.
+              "Time to come back" is honest and requires no explanation.
               Only renders if we have the session context to save the subscription.
               NotificationPrompt self-hides after the user decides. */}
           {sessionId && token && (
             <NotificationPrompt
-              headline="Want to know when your synthesis is ready? We can let you know."
-              buttonLabel="Yes, notify me"
+              headline="Want a heads-up when it\u2019s time to come back and read together?"
+              buttonLabel="Yes, let me know"
               sessionId={sessionId}
               myPerson="b"
               myToken={token}
