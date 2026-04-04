@@ -17,14 +17,15 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
+import NotificationPrompt from '@/components/NotificationPrompt'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AvailabilityState = 'good' | 'stressed'
 type Phase =
-  | 'name'         // "Hi" + name input
-  | 'checking'     // context reveal + 3-option check-in
-  | 'ready_confirmed'
+  | 'name'              // "Hi" + name input
+  | 'checking'          // context reveal + 3-option check-in
+  | 'ready_confirmed'   // brief confirmation + notification opt-in for B (P2: synthesis ready)
   | 'not_ready_confirm'
   | 'not_ready_done'
 
@@ -102,22 +103,43 @@ export default function AvailabilityCheckIn({
   const handleOptionSelect = (option: 'ready' | 'stressed' | 'not_ready') => {
     setSelectedOption(option)
     if (option === 'ready' || option === 'stressed') {
-      const state: AvailabilityState = option === 'stressed' ? 'stressed' : 'good'
+      // Show the ready_confirmed phase — it now holds the notification opt-in for B.
+      // onReady is called from within that phase once B has decided on notifications.
       setPhase('ready_confirmed')
-      // Small delay so user sees the selection before the phase transitions
-      setTimeout(() => {
-        if (onReady) onReady(state)
-      }, 1200)
     } else {
       setPhase('not_ready_confirm')
     }
   }
 
+  // Called from the ready_confirmed phase once B has made a notification decision.
+  // Fires the P1 notification (tells A that B has joined) and calls onReady.
+  const handleReadyProceed = async () => {
+    const state: AvailabilityState = selectedOption === 'stressed' ? 'stressed' : 'good'
+
+    // Fire P1 notification: tell Person A that B has joined.
+    // Non-blocking — we don't wait for this to complete before advancing.
+    if (sessionId) {
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, event: 'b_joined' }),
+      }).catch(err => console.log('P1 notify (non-blocking):', err))
+    }
+
+    if (onReady) onReady(state)
+  }
+
   const handleNotifyChoice = (notify: boolean) => {
     setNotifyA(notify)
-    // Notification logic: fires only if notify=true, handled by parent/future push system
-    // For now, just log and proceed — P1/P2 push notifications are a separate build task
-    console.log('notify_a:', notify)
+    // When B says "Let [A] know I've seen this" on the not-ready screen,
+    // fire the P1 notification so A knows B looked but isn't ready yet.
+    if (notify && sessionId) {
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, event: 'b_joined' }),
+      }).catch(err => console.log('P1 notify (non-blocking):', err))
+    }
   }
 
   const handleReminderChoice = (time: string | null) => {
@@ -439,44 +461,87 @@ export default function AvailabilityCheckIn({
   }
 
   // ── PHASE: READY CONFIRMED ──────────────────────────────────────────────────
+  // Shows a warm confirmation and an optional notification opt-in (P2: synthesis ready).
+  // B taps "Begin" to proceed — this also fires the P1 notification to Person A.
   if (phase === 'ready_confirmed') {
     const isStressed = selectedOption === 'stressed'
     return (
       <div style={{ ...pageWrap }}>
-        <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              backgroundColor: C.greenSoft,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 24px',
-              fontSize: '20px',
-              color: C.green,
-            }}
-          >
-            ✓
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+
+          {/* Confirmation mark + copy */}
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '50%',
+                backgroundColor: C.greenSoft,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 24px',
+                fontSize: '20px',
+                color: C.green,
+              }}
+            >
+              ✓
+            </div>
+            <h2
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '26px',
+                fontWeight: 400,
+                color: C.ink,
+                marginBottom: '12px',
+                lineHeight: 1.3,
+              }}
+            >
+              Good to have you here.
+            </h2>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
+              {isStressed
+                ? "It\u2019s okay to show up carrying some weight. We\u2019ll go at a pace that works."
+                : "We\u2019ll take it easy. The session is ready whenever you are."}
+            </p>
           </div>
-          <h2
+
+          {/* Notification opt-in for B — P2: notify when synthesis is ready.
+              Only renders if we have the session context to save the subscription.
+              NotificationPrompt self-hides after the user decides. */}
+          {sessionId && token && (
+            <NotificationPrompt
+              headline="Want to know when your synthesis is ready? We can let you know."
+              buttonLabel="Yes, notify me"
+              sessionId={sessionId}
+              myPerson="b"
+              myToken={token}
+            />
+          )}
+
+          {/* Continue button — fires P1 notification to A and starts intake */}
+          <button
+            onClick={handleReadyProceed}
             style={{
+              marginTop: '24px',
+              width: '100%',
+              padding: '14px 20px',
+              borderRadius: '8px',
+              backgroundColor: C.accent,
+              color: C.white,
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: '26px',
-              fontWeight: 400,
-              color: C.ink,
-              marginBottom: '12px',
-              lineHeight: 1.3,
+              fontSize: '14px',
+              fontWeight: 500,
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.accentHover }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.accent }}
           >
-            Good to have you here.
-          </h2>
-          <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
-            {isStressed
-              ? "It\u2019s okay to show up carrying some weight. We\u2019ll go at a pace that works."
-              : "We\u2019ll take it easy. The session is ready whenever you are."}
-          </p>
+            Begin
+          </button>
+
         </div>
       </div>
     )

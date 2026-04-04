@@ -383,6 +383,10 @@ export default function SessionPage() {
           variant="awaiting_b"
           inviteUrl={inviteUrl}
           joinCode={session.join_code}
+          partnerName={session.partner_nickname || undefined}
+          sessionId={sessionId}
+          myToken={myToken || undefined}
+          myPerson="a"
         />
       )
     }

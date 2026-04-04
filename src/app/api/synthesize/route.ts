@@ -214,6 +214,21 @@ Now write the synthesis. Return only valid JSON — no preamble, no commentary.`
       .update({ status: 'synthesis_ready' })
       .eq('id', sessionId)
 
+    // ── P2 notification — tell both people the synthesis is ready ───────────
+    // Non-blocking: fire and forget. If nobody opted in, this is a silent no-op.
+    // We use the internal route rather than calling OneSignal directly so the logic
+    // stays in one place and errors here never break the synthesize response.
+    try {
+      const notifyUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bond-lovat-xi.vercel.app'}/api/notifications/send`
+      fetch(notifyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, event: 'synthesis_ready' }),
+      })
+    } catch {
+      // Ignore — notification failure should never affect synthesis delivery
+    }
+
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('POST /api/synthesize error:', error)

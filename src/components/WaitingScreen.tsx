@@ -19,6 +19,7 @@
 
 import { useState } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
+import NotificationPrompt from '@/components/NotificationPrompt'
 
 export type WaitingVariant =
   | 'awaiting_b'
@@ -37,6 +38,11 @@ type Props = {
   joinCode?: string        // shown for awaiting_b variant
   onReadyNow?: () => void  // shown for not_ready variant — lets B restart the flow
   partnerName?: string     // when known, personalises copy ("Waiting for Yash" vs "Waiting for them")
+  // Notification opt-in — only used in awaiting_b variant.
+  // When provided, a small prompt appears offering A push notifications for when B joins.
+  sessionId?: string
+  myToken?: string
+  myPerson?: 'a' | 'b'
 }
 
 const C = {
@@ -112,7 +118,7 @@ const COPY: Record<WaitingVariant, ScreenCopy> = {
   },
 }
 
-export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow, partnerName }: Props) {
+export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow, partnerName, sessionId, myToken, myPerson }: Props) {
   const base = COPY[variant]
   const m = useIsMobile()
 
@@ -310,6 +316,21 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
               {copied ? 'Copied ✓' : 'Copy invite link'}
             </button>
           </div>
+        )}
+
+        {/* Notification opt-in — P1: notify A when B joins.
+            Only renders when the session/token props are provided (i.e. the session page passes them).
+            NotificationPrompt self-hides if browser doesn't support push or after the user decides. */}
+        {variant === 'awaiting_b' && sessionId && myToken && myPerson && (
+          <NotificationPrompt
+            headline={partnerName
+              ? `Get notified when ${partnerName} checks in.`
+              : "Get notified when they check in."}
+            buttonLabel="Notify me"
+            sessionId={sessionId}
+            myPerson={myPerson}
+            myToken={myToken}
+          />
         )}
 
         {/* Footer note */}
