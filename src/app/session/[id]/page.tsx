@@ -673,9 +673,19 @@ export default function SessionPage() {
       )
     }
 
-    // B responded, waiting for A
+    // B responded, waiting for A.
+    // Pass session/token props so WaitingScreen can show the P2 notification opt-in for B here.
+    // This is the correct moment: B is actually waiting and a nudge will bring them back.
     if (status === 'b_responded_synthesis') {
-      return <WaitingScreen variant="partner_synthesis" partnerName={session.person_a_name || undefined} />
+      return (
+        <WaitingScreen
+          variant="partner_synthesis"
+          partnerName={session.person_a_name || undefined}
+          sessionId={sessionId}
+          myToken={myToken}
+          myPerson="b"
+        />
+      )
     }
 
     // A responded first — B still needs to read and respond

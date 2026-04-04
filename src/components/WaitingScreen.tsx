@@ -318,14 +318,19 @@ export default function WaitingScreen({ variant, inviteUrl, joinCode, onReadyNow
           </div>
         )}
 
-        {/* Notification opt-in — P1: notify A when B joins.
+        {/* Notification opt-in.
+            Shown in two moments:
+            - awaiting_b: Person A waiting for B — P1 (notify A when B joins)
+            - partner_synthesis: Person B waiting for A to read synthesis — P2 (notify when time to continue)
             Only renders when the session/token props are provided (i.e. the session page passes them).
             NotificationPrompt self-hides if browser doesn't support push or after the user decides. */}
-        {variant === 'awaiting_b' && sessionId && myToken && myPerson && (
+        {(variant === 'awaiting_b' || variant === 'partner_synthesis') && sessionId && myToken && myPerson && (
           <NotificationPrompt
-            headline={partnerName
-              ? `Get notified when ${partnerName} checks in.`
-              : "Get notified when they check in."}
+            headline={
+              variant === 'awaiting_b'
+                ? (partnerName ? `Get notified when ${partnerName} checks in.` : "Get notified when they check in.")
+                : (partnerName ? `Get a nudge when it's time to take the next step with ${partnerName}.` : "Get a nudge when it's time to take the next step.")
+            }
             buttonLabel="Notify me"
             sessionId={sessionId}
             myPerson={myPerson}

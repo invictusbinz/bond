@@ -37,17 +37,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token.' }, { status: 403 })
     }
 
-    // Idempotency — only run if we're still at resolution_ready
-    if (session.status !== 'resolution_ready') {
+    // Idempotency — only run if we're at resolution_ready OR stuck in resolution_exchange_opening.
+    // The "stuck" case happens when a previous call set the status to opening but then the
+    // Claude API call failed before the opening message was saved. Retries from the frontend
+    // would normally be blocked because the status is no longer resolution_ready. We fix this
+    // by also allowing a run when stuck in opening with no messages yet.
+    if (session.status !== 'resolution_ready' && session.status !== 'resolution_exchange_opening') {
       return NextResponse.json({ ok: true, skipped: true, status: session.status })
     }
 
-    // ── Mark as opening (prevents double-run) ───────────────────────────────
-    await supabase
-      .from('sessions')
-      .update({ status: 'resolution_exchange_opening' })
-      .eq('id', sessionId)
-      .eq('status', 'resolution_ready') // only update if status hasn't changed
+    // If we're already in opening state, check whether an opening message already exists.
+    // If messages are present, the opening already succeeded — something else is stuck.
+    if (session.status === 'resolution_exchange_opening') {
+      const { data: existingMessages } = await supabase
+        .from('resolution_messages')
+        .select('id')
+        .eq('session_id', sessionId)
+        .limit(1)
+
+      if (existingMessages && existingMessages.length > 0) {
+        // Opening message already saved — don't regenerate.
+        return NextResponse.json({ ok: true, skipped: true, status: session.status })
+      }
+      // No messages yet — opening got stuck. Fall through to regenerate.
+    }
+
+    // ── Mark as opening (prevents double-run from concurrent calls) ─────────
+    // Only update if status is resolution_ready (the expected start state).
+    // If we're already in resolution_exchange_opening, skip the update to avoid
+    // a redundant write — we know from the check above that no message exists yet.
+    if (session.status === 'resolution_ready') {
+      await supabase
+        .from('sessions')
+        .update({ status: 'resolution_exchange_opening' })
+        .eq('id', sessionId)
+        .eq('status', 'resolution_ready') // only update if status hasn't changed
+    }
 
     // ── Build Bond's opening prompt ─────────────────────────────────────────
     const aName = session.person_a_name || 'Person A'

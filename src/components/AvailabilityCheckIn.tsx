@@ -17,7 +17,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
-import NotificationPrompt from '@/components/NotificationPrompt'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -501,25 +500,10 @@ export default function AvailabilityCheckIn({
             </h2>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
               {isStressed
-                ? "It\u2019s okay to show up carrying some weight. We\u2019ll go at a pace that works."
-                : "We\u2019ll take it easy. The session is ready whenever you are."}
+                ? "It's okay to show up carrying some weight. We'll go at a pace that works."
+                : "We'll take it easy. The session is ready whenever you are."}
             </p>
           </div>
-
-          {/* Notification opt-in for B — P2: notify when synthesis is ready.
-              Copy avoids the word "synthesis" — B has no context for it yet.
-              "Time to come back" is honest and requires no explanation.
-              Only renders if we have the session context to save the subscription.
-              NotificationPrompt self-hides after the user decides. */}
-          {sessionId && token && (
-            <NotificationPrompt
-              headline="Want a heads-up when it\u2019s time to come back and read together?"
-              buttonLabel="Yes, let me know"
-              sessionId={sessionId}
-              myPerson="b"
-              myToken={token}
-            />
-          )}
 
           {/* Continue button — fires P1 notification to A and starts intake */}
           <button
@@ -718,8 +702,8 @@ export default function AvailabilityCheckIn({
           </h2>
           <p style={{ fontSize: '15px', color: '#4a4540', lineHeight: 1.75 }}>
             {notifyA
-              ? "They\u2019ll know you\u2019ve seen this. Come back whenever it feels right."
-              : "Come back whenever you\u2019re ready. There\u2019s no rush."}
+              ? "They'll know you've seen this. Come back whenever it feels right."
+              : "Come back whenever you're ready. There's no rush."}
           </p>
         </div>
       </div>
